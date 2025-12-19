@@ -14,18 +14,39 @@ class Backtester {
      * @param {number} startRound - 백테스트 시작 회차
      * @param {number} endRound - 백테스트 종료 회차
      * @param {number} topN - 상위 N개 번호 평가 (기본 10)
+     * @param {string} method - 분석 방법 ('entropy', 'topsis', 'randomForest', 'association', 'ensemble')
+     * @param {Function} analysisFunction - 분석 함수 (선택사항, 없으면 analyzer.analyze 사용)
+     * @param {Function} progressCallback - 진행율 콜백 함수 (progress, current, total, detail)
      * @returns {Object} 백테스트 결과
      */
-    run(startRound, endRound, topN = 10) {
-        console.log(`Starting backtest from round ${startRound} to ${endRound}`);
+    run(startRound, endRound, topN = 10, method = 'entropy', analysisFunction = null, progressCallback = null) {
+        console.log(`Starting backtest from round ${startRound} to ${endRound} with method: ${method}`);
 
         this.results = [];
         const allData = this.analyzer.data;
+        const totalRounds = endRound - startRound + 1;
+
+        // 분석 함수가 제공되지 않으면 기본 analyzer.analyze 사용
+        const analyzeFn = analysisFunction || ((round) => this.analyzer.analyze(round));
 
         // 각 회차에 대해 예측 및 검증
         for (let round = startRound; round <= endRound; round++) {
+            const currentIndex = round - startRound + 1;
+            const progress = (currentIndex / totalRounds) * 100;
+
+            // 진행율 콜백 호출 (UI 업데이트를 위해 약간의 지연)
+            if (progressCallback) {
+                // 진행율 업데이트를 위해 브라우저 렌더링 시간 제공
+                if (currentIndex % 5 === 0 || currentIndex === 1 || currentIndex === totalRounds) {
+                    progressCallback(progress, currentIndex, totalRounds, `회차 ${round} 처리 중...`);
+                } else {
+                    // 더 자주 업데이트하려면 (성능 고려)
+                    progressCallback(progress, currentIndex, totalRounds, `회차 ${round} 처리 중...`);
+                }
+            }
+
             // 이전 데이터로 학습하여 현재 회차 예측
-            const analysis = this.analyzer.analyze(round - 1);
+            const analysis = analyzeFn(round - 1);
 
             // 실제 당첨 번호
             const actualData = allData.find(d => d.round === round);
@@ -62,7 +83,8 @@ class Backtester {
                 actualRanks: actualRanks,
                 avgRank: avgRank,
                 top6Accuracy: hits / 6,
-                weights: analysis.weights
+                weights: analysis.weights,
+                method: method
             });
         }
 
@@ -73,7 +95,8 @@ class Backtester {
             results: this.results,
             statistics: stats,
             topN: topN,
-            totalRounds: this.results.length
+            totalRounds: this.results.length,
+            method: method
         };
     }
 

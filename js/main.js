@@ -105,7 +105,7 @@ function loadData() {
 /**
  * Show/hide loading indicator
  */
-function showLoading(show) {
+function showLoading(show, message = '데이터 로딩 중...') {
     let loader = document.getElementById('global-loader');
 
     if (show && !loader) {
@@ -115,16 +115,83 @@ function showLoading(show) {
             <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%;
                         background: rgba(0,0,0,0.5); display: flex; align-items: center;
                         justify-content: center; z-index: 9999;">
-                <div style="background: white; padding: 30px; border-radius: 12px; text-align: center;">
+                <div style="background: white; padding: 30px; border-radius: 12px; text-align: center; min-width: 300px;">
                     <div class="spinner"></div>
-                    <p style="margin-top: 20px; font-size: 1.1rem;">데이터 로딩 중...</p>
+                    <p style="margin-top: 20px; font-size: 1.1rem;">${message}</p>
                 </div>
             </div>
         `;
         document.body.appendChild(loader);
+    } else if (show && loader) {
+        // 메시지 업데이트
+        const messageEl = loader.querySelector('p');
+        if (messageEl) {
+            messageEl.textContent = message;
+        }
     } else if (!show && loader) {
         loader.remove();
     }
+}
+
+/**
+ * Show progress indicator with percentage
+ */
+function showProgress(show, options = {}) {
+    const {
+        message = '처리 중...',
+        progress = 0,
+        current = 0,
+        total = 0,
+        detail = ''
+    } = options;
+
+    let progressLoader = document.getElementById('progress-loader');
+
+    if (show && !progressLoader) {
+        progressLoader = document.createElement('div');
+        progressLoader.id = 'progress-loader';
+        progressLoader.style.cssText = `
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7); display: flex; align-items: center;
+            justify-content: center; z-index: 10000;
+        `;
+        document.body.appendChild(progressLoader);
+    }
+
+    if (progressLoader) {
+        const progressPercent = Math.min(100, Math.max(0, progress));
+        const currentText = total > 0 ? `${current} / ${total}` : '';
+        const detailText = detail ? ` (${detail})` : '';
+
+        progressLoader.innerHTML = `
+            <div style="background: white; padding: 30px; border-radius: 12px; text-align: center; 
+                        min-width: 320px; max-width: 90%; box-shadow: 0 10px 25px rgba(0,0,0,0.3);">
+                <div class="spinner" style="margin: 0 auto 20px;"></div>
+                <p style="font-size: 1.1rem; font-weight: 600; color: #1e293b; margin-bottom: 16px;">
+                    ${message}
+                </p>
+                ${currentText ? `<p style="font-size: 0.9rem; color: #64748b; margin-bottom: 12px;">${currentText}${detailText}</p>` : ''}
+                <div style="background: #e2e8f0; height: 8px; border-radius: 4px; overflow: hidden; margin-top: 16px;">
+                    <div style="background: linear-gradient(90deg, #2563eb, #8b5cf6); height: 100%; 
+                                width: ${progressPercent}%; transition: width 0.3s ease; border-radius: 4px;"></div>
+                </div>
+                <p style="font-size: 0.875rem; color: #64748b; margin-top: 12px; font-weight: 600;">
+                    ${progressPercent.toFixed(1)}%
+                </p>
+            </div>
+        `;
+    }
+
+    if (!show && progressLoader) {
+        progressLoader.remove();
+    }
+}
+
+/**
+ * Update progress
+ */
+function updateProgress(options) {
+    showProgress(true, options);
 }
 
 /**
@@ -196,6 +263,20 @@ function switchTab(tabName) {
 }
 
 /**
+ * Get method name in Korean
+ */
+function getMethodName(method) {
+    const methodNames = {
+        'entropy': '엔트로피 가중치법',
+        'topsis': 'TOPSIS 방법',
+        'randomForest': 'Random Forest',
+        'association': '연관 규칙 분석',
+        'ensemble': '앙상블'
+    };
+    return methodNames[method] || method;
+}
+
+/**
  * Get selected analysis method
  */
 function getSelectedMethod() {
@@ -219,27 +300,43 @@ function runAnalysis() {
     analyzer.params.recentWindow = rounds;
     updateCurrentWindowDisplay(rounds);
 
+    // 분석 시작 (랜덤포레스트 등 시간이 걸리는 경우를 위해)
+    const isSlowMethod = method === 'randomForest' || method === 'association' || method === 'ensemble';
+    if (isSlowMethod) {
+        showProgress(true, {
+            message: `${getMethodName(method)} 분석 진행 중...`,
+            progress: 50,
+            detail: '데이터 처리 중...'
+        });
+    }
+
     const lastRound = analyzer.data[analyzer.data.length - 1].round;
     
-    // 선택된 방법에 따라 분석 실행
-    currentAnalysis = runAnalysisByMethod(method, lastRound, rounds);
+    try {
+        // 선택된 방법에 따라 분석 실행
+        currentAnalysis = runAnalysisByMethod(method, lastRound, rounds);
+        
+        if (isSlowMethod) {
+            showProgress(false);
+        }
+    } catch (error) {
+        if (isSlowMethod) {
+            showProgress(false);
+        }
+        showMessage(`분석 중 오류 발생: ${error.message}`, 'error');
+        console.error('Analysis error:', error);
+        return;
+    }
 
     const nextRound = lastRound + 1;
-    const methodNames = {
-        'entropy': '엔트로피 가중치법',
-        'topsis': 'TOPSIS 방법',
-        'randomForest': 'Random Forest',
-        'association': '연관 규칙 분석',
-        'ensemble': '앙상블'
-    };
     document.getElementById('next-round-info').textContent =
-        `${nextRound}회차 예측 (${methodNames[method]}, 최근 ${rounds}회차 데이터 기반)`;
+        `${nextRound}회차 예측 (${getMethodName(method)}, 최근 ${rounds}회차 데이터 기반)`;
 
     displayPredictions(currentAnalysis, predictCount);
     displayWeights(currentAnalysis);
     displayScoresChart(currentAnalysis);
 
-    showMessage(`${methodNames[method]} 분석이 완료되었습니다.`, 'success');
+    showMessage(`${getMethodName(method)} 분석이 완료되었습니다.`, 'success');
 }
 
 /**
@@ -257,19 +354,34 @@ function runNextRoundPrediction() {
 
     const lastRound = analyzer.data[analyzer.data.length - 1].round;
 
-    // 선택된 방법에 따라 분석 실행
-    currentAnalysis = runAnalysisByMethod(method, lastRound, rounds);
+    // 분석 시작 (랜덤포레스트 등 시간이 걸리는 경우를 위해)
+    const isSlowMethod = method === 'randomForest' || method === 'association' || method === 'ensemble';
+    if (isSlowMethod) {
+        showProgress(true, {
+            message: `${getMethodName(method)} 분석 진행 중...`,
+            progress: 50,
+            detail: '데이터 처리 중...'
+        });
+    }
+
+    try {
+        // 선택된 방법에 따라 분석 실행
+        currentAnalysis = runAnalysisByMethod(method, lastRound, rounds);
+        
+        if (isSlowMethod) {
+            showProgress(false);
+        }
+    } catch (error) {
+        if (isSlowMethod) {
+            showProgress(false);
+        }
+        console.error('Analysis error:', error);
+        return;
+    }
 
     const nextRound = lastRound + 1;
-    const methodNames = {
-        'entropy': '엔트로피 가중치법',
-        'topsis': 'TOPSIS 방법',
-        'randomForest': 'Random Forest',
-        'association': '연관 규칙 분석',
-        'ensemble': '앙상블'
-    };
     document.getElementById('next-round-info').textContent =
-        `${nextRound}회차 예측 (${methodNames[method]}, 최근 ${rounds}회차 데이터 기반)`;
+        `${nextRound}회차 예측 (${getMethodName(method)}, 최근 ${rounds}회차 데이터 기반)`;
 
     displayPredictions(currentAnalysis, predictCount);
     displayWeights(currentAnalysis);
@@ -587,16 +699,10 @@ function displayWeights(analysis) {
         ensembleInfo.style.cssText = 'margin-top: 20px; padding: 16px; background: #f0f9ff; border-radius: 8px;';
         ensembleInfo.innerHTML = '<strong>앙상블 가중치:</strong><br>';
         
-        const methodNames = {
-            'entropy': '엔트로피',
-            'topsis': 'TOPSIS',
-            'randomForest': 'Random Forest',
-            'association': '연관 규칙'
-        };
-
         Object.entries(analysis.methodConfig).forEach(([method, config]) => {
             if (config.enabled) {
-                ensembleInfo.innerHTML += `${methodNames[method] || method}: ${(config.weight * 100).toFixed(1)}%<br>`;
+                const methodName = getMethodName(method);
+                ensembleInfo.innerHTML += `${methodName}: ${(config.weight * 100).toFixed(1)}%<br>`;
             }
         });
 
@@ -661,6 +767,14 @@ function displayScoresChart(analysis) {
 }
 
 /**
+ * Get selected backtest method
+ */
+function getSelectedBacktestMethod() {
+    const methodSelect = document.getElementById('backtest-method');
+    return methodSelect ? methodSelect.value : 'entropy';
+}
+
+/**
  * Run backtest
  */
 function runBacktest() {
@@ -672,20 +786,60 @@ function runBacktest() {
     const startRound = parseInt(document.getElementById('backtest-start').value);
     const endRound = parseInt(document.getElementById('backtest-end').value);
     const topN = parseInt(document.getElementById('backtest-topn').value);
+    const method = getSelectedBacktestMethod();
+    const rounds = analyzer.params.recentWindow || 50;
 
     if (startRound >= endRound) {
         alert('시작 회차는 종료 회차보다 작아야 합니다.');
         return;
     }
 
-    console.log(`Running backtest: ${startRound} - ${endRound}`);
+    console.log(`Running backtest: ${startRound} - ${endRound} with method: ${method}`);
 
-    currentBacktest = backtester.run(startRound, endRound, topN);
+    // 진행율 표시 시작
+    const totalRounds = endRound - startRound + 1;
+    showProgress(true, {
+        message: `${getMethodName(method)} 백테스팅 진행 중...`,
+        progress: 0,
+        current: 0,
+        total: totalRounds,
+        detail: '초기화 중...'
+    });
+
+    // 선택된 방법에 따라 분석 함수 생성
+    const analysisFunction = (upToRound) => {
+        return runAnalysisByMethod(method, upToRound, rounds);
+    };
+
+    // 진행율 콜백 함수
+    const progressCallback = (progress, current, total, detail) => {
+        updateProgress({
+            message: `${getMethodName(method)} 백테스팅 진행 중...`,
+            progress: progress,
+            current: current,
+            total: total,
+            detail: detail
+        });
+    };
+
+    try {
+        currentBacktest = backtester.run(startRound, endRound, topN, method, analysisFunction, progressCallback);
+    } catch (error) {
+        showProgress(false);
+        showMessage(`백테스트 중 오류 발생: ${error.message}`, 'error');
+        console.error('Backtest error:', error);
+        return;
+    }
+
+    // 진행율 표시 종료
+    showProgress(false);
 
     displayBacktestStats(currentBacktest);
     displayBacktestChart(currentBacktest);
     displayHitDistribution(currentBacktest);
     displayBacktestTable(currentBacktest);
+    
+    showMessage(`${getMethodName(method)} 백테스트가 완료되었습니다.`, 'success');
 }
 
 /**
@@ -696,8 +850,10 @@ function displayBacktestStats(backtest) {
     container.innerHTML = '';
 
     const stats = backtest.statistics;
+    const methodName = getMethodName(backtest.method) || backtest.method || '알 수 없음';
 
     const statCards = [
+        { label: '분석 방법', value: methodName, highlight: true },
         { label: '평균 적중 개수', value: stats.averageHits.toFixed(2) },
         { label: 'Top 6 정확도', value: `${(stats.top6Accuracy * 100).toFixed(1)}%` },
         { label: 'Top 10 정확도', value: `${(stats.top10Accuracy * 100).toFixed(1)}%` },
@@ -709,6 +865,10 @@ function displayBacktestStats(backtest) {
     statCards.forEach(stat => {
         const card = document.createElement('div');
         card.className = 'stat-box';
+        if (stat.highlight) {
+            card.style.background = 'linear-gradient(135deg, #dbeafe, #bfdbfe)';
+            card.style.border = '2px solid #3b82f6';
+        }
         card.innerHTML = `
             <div class="stat-value">${stat.value}</div>
             <div class="stat-label">${stat.label}</div>

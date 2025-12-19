@@ -26,6 +26,8 @@ body {
     background-color: var(--bg-color);
     color: var(--text-primary);
     line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 .container {
@@ -104,7 +106,10 @@ header p {
     transition: all 0.3s ease;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 8px;
+    min-height: 44px; /* 터치 친화적 최소 높이 */
+    -webkit-tap-highlight-color: transparent; /* 모바일 탭 하이라이트 제거 */
 }
 
 .btn-primary {
@@ -254,6 +259,20 @@ header p {
     margin-top: 20px;
 }
 
+/* 테이블 래퍼 (모바일 가로 스크롤용) */
+.table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin: 20px 0;
+}
+
+@media (max-width: 768px) {
+    .table-wrapper {
+        margin: 16px -12px; /* 카드 패딩 보정 */
+        padding: 0 12px;
+    }
+}
+
 .backtest-table th,
 .backtest-table td {
     padding: 12px;
@@ -349,10 +368,19 @@ header p {
 
 .control-group input,
 .control-group select {
-    padding: 8px 12px;
+    padding: 10px 12px;
     border: 1px solid var(--border-color);
     border-radius: 6px;
     font-size: 1rem;
+    background-color: white;
+    transition: border-color 0.3s ease;
+}
+
+.control-group input:focus,
+.control-group select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
 /* Loading */
@@ -394,6 +422,10 @@ header p {
     color: var(--text-secondary);
     cursor: pointer;
     transition: all 0.3s ease;
+    -webkit-tap-highlight-color: transparent; /* 모바일 탭 하이라이트 제거 */
+    min-height: 44px; /* 터치 친화적 */
+    display: inline-flex;
+    align-items: center;
 }
 
 .tab:hover {
@@ -419,26 +451,289 @@ header p {
         padding: 12px;
     }
 
+    header {
+        padding: 20px 0;
+        margin-bottom: 20px;
+    }
+
     header h1 {
         font-size: 1.5rem;
     }
 
+    header p {
+        font-size: 0.875rem;
+    }
+
     .card {
         padding: 16px;
+        margin-bottom: 16px;
+        border-radius: 8px;
+    }
+
+    .card-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .card-title {
+        font-size: 1.25rem;
+    }
+
+    .lotto-ball {
+        width: 44px;
+        height: 44px;
+        font-size: 1rem;
+    }
+
+    .prediction-grid {
+        grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+        gap: 8px;
+    }
+
+    .prediction-item {
+        padding: 8px;
+    }
+
+    .prediction-number {
+        width: 44px;
+        height: 44px;
+        font-size: 1rem;
+    }
+
+    .stat-value {
+        font-size: 2rem;
+    }
+
+    .stat-label {
+        font-size: 0.75rem;
+    }
+
+    /* Tabs - 스크롤 가능하게 */
+    .tabs {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none; /* Firefox */
+        -ms-overflow-style: none; /* IE and Edge */
+    }
+
+    .tabs::-webkit-scrollbar {
+        display: none; /* Chrome, Safari, Opera */
+    }
+
+    .tab {
+        padding: 10px 16px;
+        font-size: 0.875rem;
+        white-space: nowrap;
+        min-width: fit-content;
+    }
+
+    /* Controls - 모바일에서 세로 스택 */
+    .controls {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+        padding: 16px;
+    }
+
+    .control-group {
+        width: 100%;
+    }
+
+    .control-group input,
+    .control-group select {
+        width: 100%;
+        padding: 12px;
+        font-size: 1rem;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+    }
+
+    /* 버튼 - 터치 친화적 */
+    .btn {
+        width: 100%;
+        padding: 14px 20px;
+        font-size: 1rem;
+        justify-content: center;
+        min-height: 44px; /* 최소 터치 영역 */
+    }
+
+    /* Grid - 모바일에서 1열 */
+    .grid-2,
+    .grid-3 {
+        grid-template-columns: 1fr;
+    }
+
+    .weights-container {
+        grid-template-columns: 1fr;
+    }
+
+    /* 테이블 가로 스크롤 */
+    .backtest-table {
+        display: block;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .backtest-table th,
+    .backtest-table td {
+        padding: 8px;
+        font-size: 0.875rem;
+        white-space: nowrap;
+    }
+
+    /* 차트 높이 조정 */
+    .chart-container {
+        height: 250px;
+    }
+
+    /* Stat box */
+    .stat-box {
+        padding: 16px;
+    }
+}
+
+/* 작은 모바일 (480px 이하) */
+@media (max-width: 480px) {
+    .container {
+        padding: 8px;
+    }
+
+    header {
+        padding: 16px 0;
+    }
+
+    header h1 {
+        font-size: 1.25rem;
+        margin-bottom: 8px;
+    }
+
+    header p {
+        font-size: 0.75rem;
+    }
+
+    .card {
+        padding: 12px;
+    }
+
+    .card-title {
+        font-size: 1.1rem;
     }
 
     .lotto-ball {
         width: 40px;
         height: 40px;
-        font-size: 1rem;
+        font-size: 0.875rem;
     }
 
     .prediction-grid {
         grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+        gap: 6px;
+    }
+
+    .prediction-number {
+        width: 40px;
+        height: 40px;
+        font-size: 0.875rem;
+    }
+
+    .prediction-item {
+        padding: 6px;
+    }
+
+    .prediction-score {
+        font-size: 0.75rem;
+    }
+
+    .prediction-rank {
+        font-size: 0.7rem;
     }
 
     .stat-value {
-        font-size: 2rem;
+        font-size: 1.75rem;
+    }
+
+    .stat-label {
+        font-size: 0.7rem;
+    }
+
+    .tab {
+        padding: 8px 12px;
+        font-size: 0.8rem;
+    }
+
+    .btn {
+        padding: 12px 16px;
+        font-size: 0.9rem;
+    }
+
+    .chart-container {
+        height: 200px;
+    }
+
+    .weight-bar {
+        height: 20px;
+    }
+
+    .weight-label {
+        font-size: 0.8rem;
+    }
+
+    .weight-value {
+        font-size: 0.7rem;
+    }
+
+    .backtest-table th,
+    .backtest-table td {
+        padding: 6px;
+        font-size: 0.8rem;
+    }
+
+    /* 조합 카드 모바일 최적화 */
+    .combination-card {
+        padding: 12px;
+    }
+}
+
+/* 터치 디바이스 최적화 */
+@media (hover: none) and (pointer: coarse) {
+    /* 터치 디바이스에서 hover 효과 제거 */
+    .prediction-item:hover {
+        transform: none;
+    }
+
+    .btn-primary:hover {
+        transform: none;
+    }
+
+    .combination-card:hover {
+        transform: none;
+    }
+
+    /* 터치 피드백 강화 */
+    .btn:active {
+        transform: scale(0.98);
+        opacity: 0.9;
+    }
+
+    .tab:active {
+        opacity: 0.7;
+    }
+}
+
+/* 가로 모드 (landscape) 모바일 최적화 */
+@media (max-width: 896px) and (orientation: landscape) {
+    .chart-container {
+        height: 200px;
+    }
+
+    header {
+        padding: 16px 0;
+    }
+
+    header h1 {
+        font-size: 1.25rem;
     }
 }
 
@@ -503,8 +798,15 @@ input[title]:hover {
     font-size: 0.8rem;
     color: #64748b;
     margin-top: 4px;
+    line-height: 1.4;
 }
 
 .control-group small strong {
     color: var(--primary-color);
+}
+
+@media (max-width: 480px) {
+    .control-group small {
+        font-size: 0.75rem;
+    }
 }
