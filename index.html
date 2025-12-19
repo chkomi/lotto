@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>로또 번호 분석 시스템 - 엔트로피 가중치법</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>🎰 로또 번호 분석 시스템</h1>
+            <p>엔트로피 가중치법(Entropy Weight Method)을 활용한 과학적 번호 예측</p>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('prediction')">예측</button>
+            <button class="tab" onclick="switchTab('backtest')">백테스팅</button>
+            <button class="tab" onclick="switchTab('statistics')">통계</button>
+            <button class="tab" onclick="switchTab('about')">설명</button>
+        </div>
+
+        <!-- Tab: Prediction -->
+        <div id="tab-prediction" class="tab-content active">
+            <!-- Controls -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">분석 설정</h2>
+                </div>
+                <div class="controls">
+                    <div class="control-group">
+                        <label for="analyze-rounds">최근 회차 기반 (10~500)</label>
+                        <input type="number" id="analyze-rounds" value="50" min="10" max="500"
+                               title="분석에 사용할 최근 회차 수입니다. 많을수록 장기 트렌드를, 적을수록 최근 트렌드를 반영합니다.">
+                        <small style="color: #64748b; font-size: 0.8rem;">
+                            현재: <strong id="current-window">50</strong>회차
+                        </small>
+                    </div>
+                    <div class="control-group">
+                        <label for="predict-count">예측 번호 개수 (6~20)</label>
+                        <input type="number" id="predict-count" value="10" min="6" max="20"
+                               title="상위 몇 개 번호를 표시할지 설정합니다.">
+                    </div>
+                    <div class="control-group">
+                        <label for="analysis-method">분석 방법</label>
+                        <select id="analysis-method" title="사용할 분석 방법을 선택하세요.">
+                            <option value="entropy">엔트로피 가중치법 (Entropy)</option>
+                            <option value="topsis">TOPSIS 방법</option>
+                            <option value="randomForest">Random Forest</option>
+                            <option value="association">연관 규칙 분석</option>
+                            <option value="ensemble">앙상블 (엔트로피 + TOPSIS)</option>
+                        </select>
+                        <small style="color: #64748b; font-size: 0.8rem;">
+                            다양한 분석 방법을 비교해보세요.
+                        </small>
+                    </div>
+                    <button class="btn btn-primary" onclick="runAnalysis()">
+                        🔍 분석 실행
+                    </button>
+                    <button class="btn btn-secondary" onclick="runNextRoundPrediction()">
+                        🎯 다음 회차 예측
+                    </button>
+                </div>
+            </div>
+
+            <!-- Next Round Prediction -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">다음 회차 예측 번호</h2>
+                    <span id="next-round-info" class="stat-label"></span>
+                </div>
+                <div id="prediction-results" class="prediction-grid">
+                    <!-- Predictions will be inserted here -->
+                </div>
+            </div>
+
+            <!-- Combinations -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">추천 조합 (상위 번호 기반)</h2>
+                    <div class="controls" style="margin: 0;">
+                        <div class="control-group">
+                            <label for="combination-count">생성할 조합 수</label>
+                            <input type="number" id="combination-count" value="10" min="5" max="50">
+                        </div>
+                        <button class="btn btn-success" onclick="generateCombinations()">
+                            🎲 조합 생성
+                        </button>
+                    </div>
+                </div>
+                <div id="combinations-results">
+                    <!-- Combinations will be inserted here -->
+                    <p style="text-align: center; color: #64748b; padding: 20px;">
+                        "조합 생성" 버튼을 클릭하면 예측 번호 기반의 추천 조합이 생성됩니다.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Feature Weights -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">특성별 가중치</h2>
+                </div>
+                <div id="weights-display" class="weights-container">
+                    <!-- Weights will be inserted here -->
+                </div>
+            </div>
+
+            <!-- All Numbers Scores -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">전체 번호 점수 (1-45)</h2>
+                </div>
+                <div class="chart-container">
+                    <canvas id="scores-chart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Backtest -->
+        <div id="tab-backtest" class="tab-content">
+            <!-- Backtest Controls -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">백테스팅 설정</h2>
+                </div>
+                <div class="controls">
+                    <div class="control-group">
+                        <label for="backtest-start">시작 회차</label>
+                        <input type="number" id="backtest-start" value="1100" min="100">
+                    </div>
+                    <div class="control-group">
+                        <label for="backtest-end">종료 회차</label>
+                        <input type="number" id="backtest-end" value="1150" min="100">
+                    </div>
+                    <div class="control-group">
+                        <label for="backtest-topn">예측 번호 개수</label>
+                        <input type="number" id="backtest-topn" value="10" min="6" max="20">
+                    </div>
+                    <button class="btn btn-success" onclick="runBacktest()">
+                        ▶️ 백테스트 실행
+                    </button>
+                    <button class="btn btn-secondary" onclick="exportBacktestResults()">
+                        💾 결과 내보내기
+                    </button>
+                </div>
+            </div>
+
+            <!-- Backtest Statistics -->
+            <div id="backtest-stats" class="grid grid-3">
+                <!-- Stats will be inserted here -->
+            </div>
+
+            <!-- Backtest Chart -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">백테스트 성능 추이</h2>
+                </div>
+                <div class="chart-container">
+                    <canvas id="backtest-chart"></canvas>
+                </div>
+            </div>
+
+            <!-- Hit Distribution -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">적중 개수 분포</h2>
+                </div>
+                <div class="chart-container">
+                    <canvas id="hit-distribution-chart"></canvas>
+                </div>
+            </div>
+
+            <!-- Detailed Results -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">상세 결과</h2>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table class="backtest-table" id="backtest-table">
+                        <thead>
+                            <tr>
+                                <th>회차</th>
+                                <th>예측 번호</th>
+                                <th>실제 번호</th>
+                                <th>적중</th>
+                                <th>평균 순위</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Results will be inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Statistics -->
+        <div id="tab-statistics" class="tab-content">
+            <!-- Overall Stats -->
+            <div class="grid grid-3">
+                <div class="stat-box">
+                    <div class="stat-value" id="total-rounds">0</div>
+                    <div class="stat-label">전체 회차</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="most-frequent">-</div>
+                    <div class="stat-label">최다 출현 번호</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="least-frequent">-</div>
+                    <div class="stat-label">최소 출현 번호</div>
+                </div>
+            </div>
+
+            <!-- Number Frequency -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">번호별 출현 빈도</h2>
+                </div>
+                <div class="chart-container" style="height: 400px;">
+                    <canvas id="frequency-chart"></canvas>
+                </div>
+            </div>
+
+            <!-- Section Distribution -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">구간별 분포</h2>
+                </div>
+                <div class="chart-container">
+                    <canvas id="section-chart"></canvas>
+                </div>
+            </div>
+
+            <!-- Odd/Even Ratio -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">홀짝 비율</h2>
+                </div>
+                <div class="chart-container">
+                    <canvas id="oddeven-chart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: About -->
+        <div id="tab-about" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">엔트로피 가중치법이란?</h2>
+                </div>
+                <div style="line-height: 1.8;">
+                    <h3 style="margin-top: 20px; color: var(--primary-color);">📊 개념</h3>
+                    <p>엔트로피 가중치법(Entropy Weight Method)은 정보 이론의 엔트로피 개념을 활용하여 각 평가 지표의 가중치를 객관적으로 결정하는 방법입니다.</p>
+
+                    <h3 style="margin-top: 20px; color: var(--primary-color);">🔢 핵심 원리</h3>
+                    <ul style="margin-left: 20px;">
+                        <li><strong>엔트로피가 낮을수록</strong> → 정보량이 많음 → 가중치가 높음</li>
+                        <li><strong>엔트로피가 높을수록</strong> → 정보량이 적음 → 가중치가 낮음</li>
+                    </ul>
+
+                    <h3 style="margin-top: 20px; color: var(--primary-color);">🎯 분석 특성 (8가지)</h3>
+                    <ol style="margin-left: 20px;">
+                        <li><strong>최근 출현 빈도</strong>: 최근 N회차 동안의 출현 횟수</li>
+                        <li><strong>미출현 기간</strong>: 마지막 출현 이후 경과 회차 수</li>
+                        <li><strong>출현 간격 패턴</strong>: 출현 간격의 규칙성/변동성</li>
+                        <li><strong>홀짝 균형도</strong>: 최근 홀수/짝수 출현 비율</li>
+                        <li><strong>구간 분포</strong>: 번호 구간(1-9, 10-18, 19-27, 28-36, 37-45) 분포</li>
+                        <li><strong>연속 번호 패턴</strong>: 연속된 번호와의 동반 출현</li>
+                        <li><strong>보너스 이력</strong>: 보너스로 출현한 이력</li>
+                        <li><strong>평균 회귀</strong>: 전체 평균 출현률 대비 최근 출현률</li>
+                    </ol>
+
+                    <h3 style="margin-top: 20px; color: var(--primary-color);">📈 백테스팅</h3>
+                    <p>과거 데이터를 이용하여 모델의 예측 성능을 검증합니다. 슬라이딩 윈도우 방식으로 각 회차를 예측하고 실제 당첨 번호와 비교하여 정확도를 측정합니다.</p>
+
+                    <h3 style="margin-top: 20px; color: var(--primary-color);">⚠️ 중요 안내</h3>
+                    <p style="color: var(--danger-color); font-weight: 500;">이 시스템은 교육 및 연구 목적으로 제작되었습니다. 로또는 완전한 무작위 추첨이므로 어떠한 분석 방법도 당첨을 보장할 수 없습니다. 과도한 구매는 삼가시기 바랍니다.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/lotto-data.js"></script>  <!-- 데이터 먼저 로드 -->
+    <script src="js/entropy.js"></script>
+    <script src="js/analyzer.js"></script>
+    <script src="js/topsis.js"></script>
+    <script src="js/random-forest.js"></script>
+    <script src="js/association-rules.js"></script>
+    <script src="js/ensemble.js"></script>
+    <script src="js/backtest.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>

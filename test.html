@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV 로딩 테스트</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .status {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        pre {
+            background: #f4f4f4;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 CSV 로딩 테스트</h1>
+
+    <div id="status"></div>
+
+    <button onclick="testLoad()">CSV 로드 테스트</button>
+    <button onclick="location.href='index.html'">메인 페이지로</button>
+
+    <div id="result"></div>
+
+    <script>
+        async function testLoad() {
+            const statusDiv = document.getElementById('status');
+            const resultDiv = document.getElementById('result');
+
+            statusDiv.innerHTML = '<div class="status info">테스트 중...</div>';
+            resultDiv.innerHTML = '';
+
+            try {
+                console.log('Testing CSV load...');
+
+                const paths = [
+                    'data/lotto_1_1202.csv',
+                    './data/lotto_1_1202.csv',
+                    '../data/lotto_1_1202.csv'
+                ];
+
+                let results = [];
+
+                for (const path of paths) {
+                    try {
+                        console.log(`Trying: ${path}`);
+                        const response = await fetch(path);
+
+                        results.push({
+                            path: path,
+                            status: response.status,
+                            statusText: response.statusText,
+                            ok: response.ok
+                        });
+
+                        if (response.ok) {
+                            const text = await response.text();
+                            const lines = text.split('\n');
+
+                            statusDiv.innerHTML = `
+                                <div class="status success">
+                                    ✅ 성공! CSV 파일이 정상적으로 로드되었습니다.
+                                    <br><strong>경로:</strong> ${path}
+                                    <br><strong>크기:</strong> ${text.length} bytes
+                                    <br><strong>행 개수:</strong> ${lines.length} lines
+                                </div>
+                            `;
+
+                            resultDiv.innerHTML = `
+                                <h3>CSV 미리보기 (처음 10줄)</h3>
+                                <pre>${lines.slice(0, 10).join('\n')}</pre>
+
+                                <h3>통계</h3>
+                                <ul>
+                                    <li>파일 크기: ${(text.length / 1024).toFixed(2)} KB</li>
+                                    <li>총 행 수: ${lines.length}</li>
+                                    <li>데이터 행 수: ${lines.length - 1} (헤더 제외)</li>
+                                </ul>
+                            `;
+
+                            return;
+                        }
+                    } catch (err) {
+                        results.push({
+                            path: path,
+                            error: err.message
+                        });
+                    }
+                }
+
+                // 모든 경로 실패
+                statusDiv.innerHTML = `
+                    <div class="status error">
+                        ❌ 오류: CSV 파일을 로드할 수 없습니다.
+                    </div>
+                `;
+
+                resultDiv.innerHTML = `
+                    <h3>시도한 경로들:</h3>
+                    <pre>${JSON.stringify(results, null, 2)}</pre>
+
+                    <h3>해결 방법:</h3>
+                    <ol>
+                        <li>터미널을 열고 다음 명령 실행:
+                            <pre>cd "/Users/yunhyungchang/Library/CloudStorage/GoogleDrive-chkomi95@gmail.com/내 드라이브/2. 개인자료/1. 사업관련/lotto/lotto_claude"
+./start.sh</pre>
+                        </li>
+                        <li>브라우저에서 <strong>http://localhost:8000/test.html</strong> 접속</li>
+                        <li>다시 "CSV 로드 테스트" 버튼 클릭</li>
+                    </ol>
+
+                    <h3>현재 URL:</h3>
+                    <pre>${window.location.href}</pre>
+                `;
+
+            } catch (error) {
+                statusDiv.innerHTML = `
+                    <div class="status error">
+                        ❌ 예외 발생: ${error.message}
+                    </div>
+                `;
+
+                resultDiv.innerHTML = `
+                    <h3>오류 상세:</h3>
+                    <pre>${error.stack}</pre>
+                `;
+            }
+        }
+
+        // 페이지 로드 시 자동 테스트
+        window.addEventListener('load', () => {
+            console.log('Page loaded, running auto test...');
+            testLoad();
+        });
+    </script>
+</body>
+</html>
