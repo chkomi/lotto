@@ -271,6 +271,7 @@ function getMethodName(method) {
         'topsis': 'TOPSIS 방법',
         'randomForest': 'Random Forest',
         'association': '연관 규칙 분석',
+        'mathConstants': '수학적 상수 분석 (e, π, φ)',
         'ensemble': '앙상블'
     };
     return methodNames[method] || method;
@@ -401,6 +402,8 @@ function runAnalysisByMethod(method, upToRound, rounds) {
             return runRandomForestAnalysis(upToRound, rounds);
         case 'association':
             return runAssociationAnalysis(upToRound, rounds);
+        case 'mathConstants':
+            return runMathConstantsAnalysis(upToRound, rounds);
         case 'ensemble':
             return runEnsembleAnalysis(upToRound, rounds);
         default:
@@ -597,6 +600,43 @@ function runEnsembleAnalysis(upToRound, rounds) {
 }
 
 /**
+ * Run Mathematical Constants analysis (e, π, φ, etc.)
+ */
+function runMathConstantsAnalysis(upToRound, rounds) {
+    const analysisData = analyzer.data.filter(d => d.round <= upToRound);
+    
+    // 수학적 상수 분석 실행
+    const mathScores = MathConstantsAnalysis.analyze(analysisData, rounds);
+    
+    // 결과를 표준 형식으로 변환
+    const result = MathConstantsAnalysis.formatResults(mathScores);
+    
+    // 수학적 상수 분석 방법들의 가중치 표시를 위한 정보 추가
+    const methods = MathConstantsAnalysis.getMethods();
+    const methodWeights = {
+        goldenRatio: 0.15,
+        exponentialDecay: 0.20,
+        piCycle: 0.15,
+        fibonacci: 0.10,
+        primeAffinity: 0.10,
+        benford: 0.10,
+        eulerWeight: 0.10,
+        harmonicMean: 0.10
+    };
+    
+    return {
+        predictions: result.predictions,
+        weights: Object.values(methodWeights),
+        weightMap: methodWeights,
+        featureNames: Object.keys(methods),
+        analyzedRound: upToRound,
+        dataCount: analysisData.length,
+        method: 'Mathematical Constants',
+        methodDetails: methods
+    };
+}
+
+/**
  * Update current window display
  */
 function updateCurrentWindowDisplay(rounds) {
@@ -660,7 +700,16 @@ function displayWeights(analysis) {
         'sectionDistribution': '구간 분포',
         'consecutivePattern': '연속 번호 패턴',
         'bonusHistory': '보너스 이력',
-        'meanReversion': '평균 회귀'
+        'meanReversion': '평균 회귀',
+        // 수학적 상수 분석 특성
+        'goldenRatio': '황금비(φ) 분석',
+        'exponentialDecay': 'e 기반 지수 감쇠',
+        'piCycle': 'π 주기 분석',
+        'fibonacci': '피보나치 수열',
+        'primeAffinity': '소수 친화도',
+        'benford': '벤포드 법칙',
+        'eulerWeight': '오일러 가중치',
+        'harmonicMean': '조화 평균 분석'
     };
 
     analysis.featureNames.forEach((name, idx) => {
