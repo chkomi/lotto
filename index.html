@@ -135,14 +135,23 @@
                     <div class="control-group">
                         <label for="backtest-start">시작 회차</label>
                         <input type="number" id="backtest-start" value="1100" min="100">
+                        <button class="btn btn-info" onclick="findOptimalStartRound()" style="margin-top: 5px; padding: 6px 12px; font-size: 0.85rem;">
+                            🔍 최적 시작회차 자동 찾기
+                        </button>
                     </div>
                     <div class="control-group">
-                        <label for="backtest-end">종료 회차</label>
-                        <input type="number" id="backtest-end" value="1150" min="100">
+                        <label for="backtest-end">종료 회차 (최신 고정)</label>
+                        <input type="number" id="backtest-end" value="1150" min="100" readonly style="background-color: #f1f5f9;">
+                        <small style="color: #64748b; font-size: 0.8rem;">
+                            자동으로 가장 최근 회차로 설정됩니다.
+                        </small>
                     </div>
                     <div class="control-group">
                         <label for="backtest-topn">예측 번호 개수</label>
                         <input type="number" id="backtest-topn" value="10" min="6" max="20">
+                        <small style="color: #64748b; font-size: 0.8rem;">
+                            변경 후 최적 시작회차를 자동으로 찾습니다.
+                        </small>
                     </div>
                     <div class="control-group">
                         <label for="backtest-method">분석 방법</label>
