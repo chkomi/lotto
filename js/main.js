@@ -59,6 +59,9 @@ function loadData() {
             association: { enabled: false, weight: 0 }
         });
 
+        // 백테스트 종료회차를 최신 회차로 초기화
+        initBacktestEndRound();
+
         // Initialize statistics tab
         updateStatistics();
 
@@ -775,6 +778,190 @@ function getSelectedBacktestMethod() {
 }
 
 /**
+ * Initialize backtest end round to latest round
+ */
+function initBacktestEndRound() {
+    if (!analyzer || !analyzer.data || analyzer.data.length === 0) return;
+    
+    const latestRound = analyzer.data[analyzer.data.length - 1].round;
+    const endRoundInput = document.getElementById('backtest-end');
+    if (endRoundInput) {
+        endRoundInput.value = latestRound;
+    }
+}
+
+/**
+ * Find optimal start round that maximizes average hits
+ * Uses binary-like search with sampling for efficiency
+ */
+async function findOptimalStartRound() {
+    if (!analyzer || !backtester) {
+        alert('데이터가 로드되지 않았습니다.');
+        return;
+    }
+
+    const endRound = parseInt(document.getElementById('backtest-end').value);
+    const topN = parseInt(document.getElementById('backtest-topn').value);
+    const method = getSelectedBacktestMethod();
+    const rounds = analyzer.params.recentWindow || 50;
+
+    // 최소 시작 회차 (최소 50회차의 데이터가 필요)
+    const minStartRound = Math.max(100, analyzer.data[0].round + 50);
+    // 최대 시작 회차 (최소 10회차 이상 테스트 필요)
+    const maxStartRound = endRound - 10;
+
+    if (minStartRound >= maxStartRound) {
+        alert('테스트할 수 있는 회차 범위가 너무 좁습니다.');
+        return;
+    }
+
+    console.log(`Finding optimal start round: ${minStartRound} ~ ${maxStartRound} with method: ${method}, topN: ${topN}`);
+
+    // 분석 함수 생성
+    const analysisFunction = (upToRound) => {
+        return runAnalysisByMethod(method, upToRound, rounds);
+    };
+
+    // 탐색 간격 설정 (효율적인 탐색을 위해 처음에는 큰 간격으로)
+    const coarseStep = 20;  // 1차 탐색: 20회차 간격
+    const fineStep = 5;     // 2차 탐색: 5회차 간격
+
+    let bestStartRound = minStartRound;
+    let bestAvgHits = 0;
+    let searchResults = [];
+
+    // 1단계: 큰 간격으로 빠르게 탐색
+    const coarseCandidates = [];
+    for (let start = minStartRound; start <= maxStartRound; start += coarseStep) {
+        coarseCandidates.push(start);
+    }
+    // 마지막 회차도 포함
+    if (coarseCandidates[coarseCandidates.length - 1] < maxStartRound) {
+        coarseCandidates.push(maxStartRound);
+    }
+
+    const totalSteps = coarseCandidates.length;
+    let currentStep = 0;
+
+    showProgress(true, {
+        message: `${getMethodName(method)} 최적 시작회차 탐색 중...`,
+        progress: 0,
+        current: 0,
+        total: totalSteps,
+        detail: '1단계: 광역 탐색'
+    });
+
+    // 1차 광역 탐색
+    for (const startRound of coarseCandidates) {
+        currentStep++;
+        
+        updateProgress({
+            message: `${getMethodName(method)} 최적 시작회차 탐색 중...`,
+            progress: (currentStep / totalSteps) * 50, // 1단계는 50%까지
+            current: currentStep,
+            total: totalSteps,
+            detail: `시작회차 ${startRound} 테스트 중...`
+        });
+
+        try {
+            // 백테스트 실행 (콜백 없이 빠르게)
+            const result = backtester.run(startRound, endRound, topN, method, analysisFunction, null);
+            const avgHits = result.statistics.averageHits;
+
+            searchResults.push({
+                startRound: startRound,
+                avgHits: avgHits,
+                totalRounds: result.totalRounds
+            });
+
+            if (avgHits > bestAvgHits) {
+                bestAvgHits = avgHits;
+                bestStartRound = startRound;
+            }
+        } catch (error) {
+            console.warn(`Error testing start round ${startRound}:`, error);
+        }
+
+        // UI 업데이트를 위한 잠시 대기
+        await new Promise(resolve => setTimeout(resolve, 10));
+    }
+
+    // 2단계: 최적 구간 주변에서 세밀하게 탐색
+    const fineSearchStart = Math.max(minStartRound, bestStartRound - coarseStep);
+    const fineSearchEnd = Math.min(maxStartRound, bestStartRound + coarseStep);
+    
+    const fineCandidates = [];
+    for (let start = fineSearchStart; start <= fineSearchEnd; start += fineStep) {
+        // 이미 테스트한 회차는 제외
+        if (!coarseCandidates.includes(start)) {
+            fineCandidates.push(start);
+        }
+    }
+
+    const totalFineSteps = fineCandidates.length;
+    let currentFineStep = 0;
+
+    for (const startRound of fineCandidates) {
+        currentFineStep++;
+        
+        updateProgress({
+            message: `${getMethodName(method)} 최적 시작회차 탐색 중...`,
+            progress: 50 + (currentFineStep / totalFineSteps) * 50, // 2단계는 50~100%
+            current: currentFineStep,
+            total: totalFineSteps,
+            detail: `2단계: 세밀 탐색 - 시작회차 ${startRound}`
+        });
+
+        try {
+            const result = backtester.run(startRound, endRound, topN, method, analysisFunction, null);
+            const avgHits = result.statistics.averageHits;
+
+            searchResults.push({
+                startRound: startRound,
+                avgHits: avgHits,
+                totalRounds: result.totalRounds
+            });
+
+            if (avgHits > bestAvgHits) {
+                bestAvgHits = avgHits;
+                bestStartRound = startRound;
+            }
+        } catch (error) {
+            console.warn(`Error testing start round ${startRound}:`, error);
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 10));
+    }
+
+    showProgress(false);
+
+    // 결과 정렬 (평균 적중 개수 기준 내림차순)
+    searchResults.sort((a, b) => b.avgHits - a.avgHits);
+
+    // 시작 회차 입력 필드에 최적값 설정
+    const startInput = document.getElementById('backtest-start');
+    if (startInput) {
+        startInput.value = bestStartRound;
+    }
+
+    // 결과 메시지
+    const top5 = searchResults.slice(0, 5);
+    let resultMessage = `✅ 최적 시작회차: ${bestStartRound}회차 (평균 적중: ${bestAvgHits.toFixed(2)}개)\n\n`;
+    resultMessage += `📊 상위 5개 시작회차:\n`;
+    top5.forEach((r, idx) => {
+        resultMessage += `  ${idx + 1}. ${r.startRound}회차 - 평균 ${r.avgHits.toFixed(2)}개 (${r.totalRounds}회차 테스트)\n`;
+    });
+
+    console.log('Optimal start round search results:', searchResults);
+    console.log(resultMessage);
+
+    showMessage(`최적 시작회차 ${bestStartRound}회차가 설정되었습니다! (평균 적중: ${bestAvgHits.toFixed(2)}개)`, 'success');
+
+    // 알림으로 상세 결과 표시
+    alert(resultMessage);
+}
+
+/**
  * Run backtest
  */
 function runBacktest() {
@@ -1442,5 +1629,34 @@ document.addEventListener('DOMContentLoaded', function() {
     const analyzeRoundsInput = document.getElementById('analyze-rounds');
     if (analyzeRoundsInput) {
         analyzeRoundsInput.addEventListener('change', updateAnalyzeRounds);
+    }
+
+    // 백테스트 예측번호 개수 변경 시 자동으로 최적 시작회차 찾기
+    const backtestTopnInput = document.getElementById('backtest-topn');
+    if (backtestTopnInput) {
+        backtestTopnInput.addEventListener('change', function() {
+            // 데이터가 로드되어 있을 때만 자동 탐색 실행
+            if (analyzer && backtester) {
+                const autoFind = confirm(
+                    `예측 번호 개수가 ${this.value}개로 변경되었습니다.\n\n` +
+                    `최적의 시작회차를 자동으로 찾으시겠습니까?\n` +
+                    `(약 1-2분 소요될 수 있습니다)`
+                );
+                if (autoFind) {
+                    findOptimalStartRound();
+                }
+            }
+        });
+    }
+
+    // 백테스트 분석 방법 변경 시에도 자동 탐색 제안
+    const backtestMethodSelect = document.getElementById('backtest-method');
+    if (backtestMethodSelect) {
+        backtestMethodSelect.addEventListener('change', function() {
+            if (analyzer && backtester) {
+                const methodName = getMethodName(this.value);
+                showMessage(`분석 방법이 "${methodName}"으로 변경되었습니다. 최적 시작회차를 다시 찾는 것을 권장합니다.`, 'info');
+            }
+        });
     }
 });
