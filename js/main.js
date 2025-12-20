@@ -1254,7 +1254,7 @@ function getBallColor(num) {
 }
 
 /**
- * Generate combinations from predicted numbers
+ * Generate combinations from predicted numbers (random selection)
  */
 function generateCombinations() {
     if (!currentAnalysis) {
@@ -1267,51 +1267,57 @@ function generateCombinations() {
 
     // Get top N predicted numbers
     const topNumbers = currentAnalysis.predictions.slice(0, poolSize);
-
-    console.log(`Generating combinations from top ${poolSize} numbers`);
-
-    // Generate all possible 6-number combinations
-    const allCombinations = [];
     const numbers = topNumbers.map(p => p.number);
-    const scores = topNumbers.map(p => p.score);
 
-    // Create score map for quick lookup
-    const scoreMap = {};
-    topNumbers.forEach(p => scoreMap[p.number] = p.score);
+    // Check if we have enough numbers
+    if (numbers.length < 6) {
+        alert('예측 번호가 6개 미만입니다. 예측 번호 개수를 늘려주세요.');
+        return;
+    }
 
-    // Generate combinations (C(n, 6))
-    function combine(arr, size, start = 0, combo = []) {
-        if (combo.length === size) {
-            // Calculate combination score (average of selected numbers)
-            const comboScore = combo.reduce((sum, num) => sum + scoreMap[num], 0) / combo.length;
-            allCombinations.push({
-                numbers: [...combo],
-                score: comboScore
+    console.log(`Generating ${combinationCount} random combinations from ${poolSize} predicted numbers`);
+
+    // Generate random combinations
+    const combinations = [];
+    const usedCombinations = new Set(); // 중복 방지용
+
+    // Fisher-Yates shuffle helper
+    function shuffleArray(array) {
+        const shuffled = [...array];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        return shuffled;
+    }
+
+    // Generate random combinations
+    while (combinations.length < combinationCount) {
+        // Shuffle and take first 6 numbers
+        const shuffled = shuffleArray(numbers);
+        const combo = shuffled.slice(0, 6).sort((a, b) => a - b);
+        const comboKey = combo.join(',');
+
+        // 중복 체크
+        if (!usedCombinations.has(comboKey)) {
+            usedCombinations.add(comboKey);
+            combinations.push({
+                numbers: combo
             });
-            return;
         }
 
-        for (let i = start; i < arr.length; i++) {
-            combo.push(arr[i]);
-            combine(arr, size, i + 1, combo);
-            combo.pop();
+        // 무한 루프 방지 (가능한 조합 수가 요청한 수보다 적은 경우)
+        if (usedCombinations.size >= Math.min(combinationCount * 10, 1000)) {
+            break;
         }
     }
 
-    combine(numbers, 6);
-
-    // Sort by score (descending)
-    allCombinations.sort((a, b) => b.score - a.score);
-
-    // Take top N combinations
-    const topCombinations = allCombinations.slice(0, combinationCount);
-
-    console.log(`Generated ${allCombinations.length} total combinations, showing top ${topCombinations.length}`);
+    console.log(`Generated ${combinations.length} random combinations`);
 
     // Display combinations
-    displayCombinations(topCombinations);
+    displayCombinations(combinations);
 
-    showMessage(`${topCombinations.length}개 조합이 생성되었습니다!`, 'success');
+    showMessage(`${combinations.length}개 조합이 랜덤으로 생성되었습니다!`, 'success');
 }
 
 /**
@@ -1354,12 +1360,7 @@ function displayCombinations(combinations) {
         rank.style.cssText = 'font-weight: 700; color: #1e293b; font-size: 1.1rem;';
         rank.textContent = `#${idx + 1}`;
 
-        const score = document.createElement('div');
-        score.style.cssText = 'color: #64748b; font-size: 0.9rem;';
-        score.textContent = `점수: ${(combo.score * 100).toFixed(1)}`;
-
         header.appendChild(rank);
-        header.appendChild(score);
 
         // Numbers
         const numbersDiv = document.createElement('div');
@@ -1417,8 +1418,8 @@ function displayCombinations(combinations) {
         color: #1e40af;
     `;
     summary.innerHTML = `
-        <strong>💡 팁:</strong> 상위 조합일수록 예측 점수가 높은 번호들로 구성되어 있습니다.<br>
-        각 조합의 번호를 클릭하여 복사할 수 있습니다.
+        <strong>💡 팁:</strong> 예측된 번호들 중에서 랜덤으로 생성된 조합입니다.<br>
+        각 조합의 번호를 복사 버튼을 클릭하여 복사할 수 있습니다.
     `;
 
     container.appendChild(summary);
