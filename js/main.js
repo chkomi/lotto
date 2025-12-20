@@ -601,6 +601,7 @@ function runEnsembleAnalysis(upToRound, rounds) {
 
 /**
  * Run Mathematical Constants analysis (e, π, φ, etc.)
+ * v2: 동적 특성 강화 버전
  */
 function runMathConstantsAnalysis(upToRound, rounds) {
     const analysisData = analyzer.data.filter(d => d.round <= upToRound);
@@ -614,14 +615,18 @@ function runMathConstantsAnalysis(upToRound, rounds) {
     // 수학적 상수 분석 방법들의 가중치 표시를 위한 정보 추가
     const methods = MathConstantsAnalysis.getMethods();
     const methodWeights = {
-        goldenRatio: 0.15,
-        exponentialDecay: 0.20,
-        piCycle: 0.15,
-        fibonacci: 0.10,
-        primeAffinity: 0.10,
-        benford: 0.10,
-        eulerWeight: 0.10,
-        harmonicMean: 0.10
+        // 동적 특성 (70%)
+        exponentialDecay: 0.15,
+        piCyclePhase: 0.12,
+        goldenInterval: 0.10,
+        harmonicPrediction: 0.12,
+        eBasedMomentum: 0.08,
+        logarithmicTrend: 0.08,
+        sqrtVariance: 0.05,
+        // 혼합 특성 (30%)
+        fibonacciCorrelation: 0.10,
+        primeBalance: 0.10,
+        benfordDeviation: 0.10
     };
     
     return {
@@ -631,7 +636,7 @@ function runMathConstantsAnalysis(upToRound, rounds) {
         featureNames: Object.keys(methods),
         analyzedRound: upToRound,
         dataCount: analysisData.length,
-        method: 'Mathematical Constants',
+        method: 'Mathematical Constants v2',
         methodDetails: methods
     };
 }
@@ -701,15 +706,17 @@ function displayWeights(analysis) {
         'consecutivePattern': '연속 번호 패턴',
         'bonusHistory': '보너스 이력',
         'meanReversion': '평균 회귀',
-        // 수학적 상수 분석 특성
-        'goldenRatio': '황금비(φ) 분석',
+        // 수학적 상수 분석 특성 v2
         'exponentialDecay': 'e 기반 지수 감쇠',
-        'piCycle': 'π 주기 분석',
-        'fibonacci': '피보나치 수열',
-        'primeAffinity': '소수 친화도',
-        'benford': '벤포드 법칙',
-        'eulerWeight': '오일러 가중치',
-        'harmonicMean': '조화 평균 분석'
+        'piCyclePhase': 'π 주기 위상',
+        'goldenInterval': '황금 간격 (φ)',
+        'harmonicPrediction': '조화 평균 예측',
+        'eBasedMomentum': 'e 모멘텀',
+        'logarithmicTrend': '로그 트렌드',
+        'sqrtVariance': '√n 분산',
+        'fibonacciCorrelation': '피보나치 상관',
+        'primeBalance': '소수 균형',
+        'benfordDeviation': '벤포드 편차'
     };
 
     analysis.featureNames.forEach((name, idx) => {
