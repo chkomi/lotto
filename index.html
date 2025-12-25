@@ -7,14 +7,16 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <title>로또 번호 분석 시스템 - 엔트로피 가중치법</title>
+    <!-- Pretendard 폰트 (KRDS에서 사용하는 폰트와 유사) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
     <link rel="stylesheet" href="css/style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
     <header>
         <div class="container">
-            <h1>🎰 로또 번호 분석 시스템</h1>
-            <p>엔트로피 가중치법(Entropy Weight Method)을 활용한 과학적 번호 예측</p>
+            <h1>로또 번호 분석 시스템</h1>
+            <p>엔트로피 가중치법을 활용한 데이터 기반 번호 예측 및 분석</p>
         </div>
     </header>
 
@@ -29,108 +31,116 @@
 
         <!-- Tab: Prediction -->
         <div id="tab-prediction" class="tab-content active">
-            <!-- Controls -->
-            <div class="card">
-                <div class="card-header">
-                    <h2 class="card-title">분석 설정</h2>
+            <!-- Controls - 컴팩트하게 -->
+            <div class="card card-compact">
+                <div class="card-header-compact">
+                    <h2 class="card-title-compact">⚙️ 분석 설정</h2>
                 </div>
-                <div class="controls">
-                    <div class="control-group">
-                        <label for="analyze-rounds">최근 회차 기반 (10~500)</label>
-                        <input type="number" id="analyze-rounds" value="50" min="10" max="500"
-                               title="분석에 사용할 최근 회차 수입니다. 많을수록 장기 트렌드를, 적을수록 최근 트렌드를 반영합니다.">
-                        <small style="color: #64748b; font-size: 0.8rem;">
-                            현재: <strong id="current-window">50</strong>회차
-                        </small>
-                    </div>
-                    <div class="control-group">
-                        <label for="predict-count">예측 번호 개수 (6~20)</label>
-                        <input type="number" id="predict-count" value="10" min="6" max="20"
-                               title="상위 몇 개 번호를 표시할지 설정합니다.">
-                    </div>
-                    <div class="control-group">
+                <div class="controls-compact">
+                    <div class="control-group-compact">
                         <label for="analysis-method">분석 방법</label>
-                        <select id="analysis-method" title="사용할 분석 방법을 선택하세요.">
-                            <option value="entropy">엔트로피 가중치법 (Entropy)</option>
-                            <option value="topsis">TOPSIS 방법</option>
+                        <select id="analysis-method">
+                            <option value="entropy">엔트로피 가중치법</option>
+                            <option value="topsis">TOPSIS</option>
+                            <option value="ensemble">앙상블</option>
                             <option value="randomForest">Random Forest</option>
-                            <option value="association">연관 규칙 분석</option>
-                            <option value="mathConstants">수학적 상수 분석 (e, π, φ)</option>
-                            <option value="ensemble">앙상블 (엔트로피 + TOPSIS)</option>
+                            <option value="association">연관 규칙</option>
+                            <option value="mathConstants">수학적 상수</option>
                         </select>
-                        <small style="color: #64748b; font-size: 0.8rem;">
-                            다양한 분석 방법을 비교해보세요.
-                        </small>
                     </div>
-                    <button class="btn btn-primary" onclick="runAnalysis()">
-                        🔍 분석 실행
-                    </button>
-                    <button class="btn btn-secondary" onclick="runNextRoundPrediction()">
-                        🎯 다음 회차 예측
-                    </button>
-                </div>
-            </div>
-
-            <!-- Next Round Prediction -->
-            <div class="card">
-                <div class="card-header">
-                    <h2 class="card-title">다음 회차 예측 번호</h2>
-                    <span id="next-round-info" class="stat-label"></span>
-                </div>
-                <div id="prediction-results" class="prediction-grid">
-                    <!-- Predictions will be inserted here -->
-                </div>
-            </div>
-
-            <!-- Combinations -->
-            <div class="card">
-                <div class="card-header">
-                    <h2 class="card-title">추천 조합 (상위 번호 기반)</h2>
-                    <div class="controls" style="margin: 0;">
-                        <div class="control-group">
-                            <label for="combination-count">생성할 조합 수</label>
-                            <input type="number" id="combination-count" value="10" min="5" max="50">
-                        </div>
-                        <button class="btn btn-success" onclick="generateCombinations()">
-                            🎲 조합 생성
+                    <div class="control-group-compact">
+                        <label for="analyze-rounds">분석 범위</label>
+                        <input type="number" id="analyze-rounds" value="50" min="10" max="500">
+                        <small>현재: <strong id="current-window">50</strong>회차</small>
+                    </div>
+                    <div class="control-group-compact">
+                        <label for="predict-count">표시 개수</label>
+                        <input type="number" id="predict-count" value="10" min="6" max="20">
+                    </div>
+                    <div class="control-group-compact" style="display: flex; align-items: flex-end;">
+                        <button class="btn btn-primary" onclick="runNextRoundPrediction()" style="width: 100%;">
+                            🎯 예측 실행
                         </button>
                     </div>
                 </div>
-                <div id="combinations-results">
-                    <!-- Combinations will be inserted here -->
-                    <p style="text-align: center; color: #64748b; padding: 20px;">
-                        "조합 생성" 버튼을 클릭하면 예측 번호 기반의 추천 조합이 생성됩니다.
-                    </p>
+            </div>
+
+            <!-- Main Grid: 예측 번호와 조합을 나란히 -->
+            <div class="main-grid">
+                <!-- Next Round Prediction -->
+                <div class="card card-compact">
+                    <div class="card-header-compact">
+                        <h2 class="card-title-compact">🎯 예측 번호</h2>
+                        <div id="next-round-info" style="font-size: 0.75rem; color: #64748b;"></div>
+                    </div>
+                    <div id="prediction-results" class="prediction-grid-compact">
+                        <!-- Predictions will be inserted here -->
+                    </div>
+                </div>
+
+                <!-- Combinations -->
+                <div class="card card-compact">
+                    <div class="card-header-compact">
+                        <h2 class="card-title-compact">🎲 추천 조합</h2>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <input type="number" id="combination-count" value="5" min="3" max="20" 
+                                   style="width: 60px; padding: 4px 8px; font-size: 0.875rem;">
+                            <button class="btn btn-success" onclick="generateCombinations()" 
+                                    style="padding: 6px 12px; font-size: 0.875rem; min-height: auto;">
+                                생성
+                            </button>
+                        </div>
+                    </div>
+                    <div id="combinations-results" class="combinations-compact">
+                        <!-- Combinations will be inserted here -->
+                        <div style="text-align: center; padding: 20px; color: #94a3b8; font-size: 0.875rem;">
+                            조합 생성 버튼을 클릭하세요
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Feature Weights -->
-            <div class="card">
-                <div class="card-header">
-                    <h2 class="card-title">특성별 가중치</h2>
+            <!-- Secondary Grid: 가중치와 차트를 나란히 -->
+            <div class="secondary-grid">
+                <!-- Feature Weights -->
+                <div class="card card-compact">
+                    <div class="card-header-compact">
+                        <h2 class="card-title-compact">특성별 가중치</h2>
+                    </div>
+                    <div id="weights-display" class="weights-container-compact">
+                        <!-- Weights will be inserted here -->
+                    </div>
                 </div>
-                <div id="weights-display" class="weights-container">
-                    <!-- Weights will be inserted here -->
-                </div>
-            </div>
 
-            <!-- All Numbers Scores -->
-            <div class="card">
-                <div class="card-header">
-                    <h2 class="card-title">전체 번호 점수 (1-45)</h2>
-                </div>
-                <div class="chart-container">
-                    <canvas id="scores-chart"></canvas>
+                <!-- All Numbers Scores -->
+                <div class="card card-compact">
+                    <div class="card-header-compact">
+                        <h2 class="card-title-compact">전체 번호 점수</h2>
+                    </div>
+                    <div class="chart-container-compact">
+                        <canvas id="scores-chart"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Tab: Backtest -->
         <div id="tab-backtest" class="tab-content">
+            <!-- Explanation -->
+            <div class="card" style="background: linear-gradient(135deg, #eff6ff, #dbeafe); border: 2px solid #3b82f6;">
+                <div style="padding: 16px;">
+                    <h3 style="margin: 0 0 8px 0; color: #1e40af;">📊 백테스팅이란?</h3>
+                    <p style="margin: 0; color: #1e3a8a; font-size: 0.9rem; line-height: 1.6;">
+                        과거 데이터로 예측 모델을 테스트하는 방법입니다. "만약 이전에 이 방법을 사용했다면 얼마나 정확했을까?"를 확인할 수 있습니다.<br>
+                        <strong>Walk-Forward 방식</strong>은 미래 정보를 사용하지 않고 순차적으로 테스트하여 더 현실적인 성능을 보여줍니다.
+                    </p>
+                </div>
+            </div>
+
             <!-- Backtest Controls -->
             <div class="card">
                 <div class="card-header">
-                    <h2 class="card-title">백테스팅 설정</h2>
+                    <h2 class="card-title">⚙️ 백테스팅 설정</h2>
                 </div>
                 <div class="controls">
                     <div class="control-group">

@@ -1,4 +1,4 @@
-/* 로또 번호 분석 시스템 스타일 */
+/* 로또 번호 분석 시스템 스타일 - KRDS 디자인 시스템 기반 */
 
 * {
     margin: 0;
@@ -7,84 +7,186 @@
 }
 
 :root {
-    --primary-color: #2563eb;
-    --secondary-color: #8b5cf6;
-    --success-color: #10b981;
-    --warning-color: #f59e0b;
-    --danger-color: #ef4444;
-    --bg-color: #f8fafc;
-    --card-bg: #ffffff;
-    --text-primary: #1e293b;
-    --text-secondary: #64748b;
-    --border-color: #e2e8f0;
+    /* KRDS 기반 색상 체계 - 정부 서비스에 적합한 색상 */
+    --krds-blue: #004EA2;           /* KRDS 메인 블루 */
+    --krds-blue-light: #0066CC;     /* 밝은 블루 */
+    --krds-blue-dark: #003366;      /* 어두운 블루 */
+    --krds-blue-subtle: #E6F2FF;    /* 연한 블루 배경 */
+    
+    /* 보조 색상 */
+    --krds-success: #28A745;        /* 성공 (녹색) */
+    --krds-success-light: #D4EDDA;  /* 연한 녹색 */
+    --krds-warning: #FFC107;        /* 경고 (노란색) */
+    --krds-warning-light: #FFF3CD;  /* 연한 노란색 */
+    --krds-danger: #DC3545;         /* 위험 (빨간색) */
+    --krds-danger-light: #F8D7DA;   /* 연한 빨간색 */
+    
+    /* 중립 색상 */
+    --krds-gray-100: #F8F9FA;       /* 배경색 */
+    --krds-gray-200: #E9ECEF;       /* 경계선 */
+    --krds-gray-300: #DEE2E6;       /* 구분선 */
+    --krds-gray-700: #495057;       /* 보조 텍스트 */
+    --krds-gray-900: #212529;       /* 메인 텍스트 */
+    
+    /* 기존 변수 호환성 유지 */
+    --primary-color: var(--krds-blue);
+    --secondary-color: var(--krds-blue-light);
+    --success-color: var(--krds-success);
+    --warning-color: var(--krds-warning);
+    --danger-color: var(--krds-danger);
+    --bg-color: var(--krds-gray-100);
+    --card-bg: #FFFFFF;
+    --text-primary: var(--krds-gray-900);
+    --text-secondary: var(--krds-gray-700);
+    --border-color: var(--krds-gray-200);
+    
+    /* KRDS 기반 그림자 - 더 부드럽고 자연스러운 그림자 */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
     --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    
+    /* 간격 체계 - 8px 단위 */
+    --spacing-xs: 4px;
+    --spacing-sm: 8px;
+    --spacing-md: 16px;
+    --spacing-lg: 24px;
+    --spacing-xl: 32px;
+    
+    /* 타이포그래피 */
+    --font-family-base: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+    --font-size-xs: 0.75rem;    /* 12px */
+    --font-size-sm: 0.875rem;   /* 14px */
+    --font-size-base: 1rem;     /* 16px */
+    --font-size-lg: 1.125rem;   /* 18px */
+    --font-size-xl: 1.25rem;    /* 20px */
+    --font-size-2xl: 1.5rem;    /* 24px */
+    --font-size-3xl: 2rem;      /* 32px */
+    
+    --line-height-tight: 1.25;
+    --line-height-normal: 1.5;
+    --line-height-relaxed: 1.75;
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-family: var(--font-family-base);
     background-color: var(--bg-color);
     color: var(--text-primary);
-    line-height: 1.6;
+    line-height: var(--line-height-normal);
+    font-size: var(--font-size-base);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
 
 .container {
-    max-width: 1400px;
+    max-width: 1600px;
     margin: 0 auto;
-    padding: 20px;
+    padding: var(--spacing-md);
 }
 
-/* Header */
+/* Header - KRDS 스타일: 깔끔하고 전문적인 헤더 */
 header {
-    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-    color: white;
-    padding: 30px 0;
-    margin-bottom: 30px;
-    box-shadow: var(--shadow-lg);
+    background: var(--krds-blue);
+    color: #FFFFFF;
+    padding: var(--spacing-lg) 0;
+    margin-bottom: var(--spacing-md);
+    box-shadow: var(--shadow-md);
+    border-bottom: 3px solid var(--krds-blue-light);
 }
 
 header h1 {
-    font-size: 2rem;
+    font-size: var(--font-size-2xl);
     font-weight: 700;
-    margin-bottom: 10px;
+    margin-bottom: 4px;
+    letter-spacing: -0.02em;
 }
 
 header p {
-    font-size: 1rem;
-    opacity: 0.9;
+    font-size: var(--font-size-base);
+    opacity: 0.95;
+    font-weight: 400;
 }
 
-/* Card */
+/* Card - KRDS 스타일: 깔끔한 카드 디자인 */
 .card {
     background: var(--card-bg);
-    border-radius: 12px;
-    padding: 24px;
-    margin-bottom: 24px;
-    box-shadow: var(--shadow);
+    border-radius: 8px;
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+    box-shadow: var(--shadow-sm);
     border: 1px solid var(--border-color);
+    transition: box-shadow 0.2s ease;
+}
+
+.card:hover {
+    box-shadow: var(--shadow-md);
+}
+
+/* 컴팩트 카드 스타일 */
+.card-compact {
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
 }
 
 .card-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
-    padding-bottom: 16px;
-    border-bottom: 2px solid var(--border-color);
+    margin-bottom: var(--spacing-lg);
+    padding-bottom: var(--spacing-md);
+    border-bottom: 2px solid var(--krds-gray-200);
+}
+
+.card-header-compact {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-md);
+    padding-bottom: var(--spacing-sm);
+    border-bottom: 1px solid var(--krds-gray-200);
 }
 
 .card-title {
-    font-size: 1.5rem;
+    font-size: var(--font-size-2xl);
     font-weight: 600;
     color: var(--text-primary);
+    letter-spacing: -0.01em;
 }
 
-/* Grid Layout */
+.card-title-compact {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+    margin: 0;
+}
+
+/* 그리드 레이아웃 */
+.main-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+}
+
+.secondary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+}
+
+@media (max-width: 1024px) {
+    .main-grid,
+    .secondary-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Grid Layout - 8px 단위 간격 */
 .grid {
     display: grid;
-    gap: 24px;
+    gap: var(--spacing-lg);
 }
 
 .grid-2 {
@@ -95,54 +197,69 @@ header p {
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
 }
 
-/* Buttons */
+/* Buttons - KRDS 스타일: 명확하고 접근 가능한 버튼 */
 .btn {
     padding: 12px 24px;
     border: none;
-    border-radius: 8px;
-    font-size: 1rem;
+    border-radius: 6px;
+    font-size: var(--font-size-base);
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    min-height: 44px; /* 터치 친화적 최소 높이 */
-    -webkit-tap-highlight-color: transparent; /* 모바일 탭 하이라이트 제거 */
+    gap: var(--spacing-sm);
+    min-height: 44px; /* 접근성: 최소 터치 영역 */
+    -webkit-tap-highlight-color: transparent;
+    letter-spacing: -0.01em;
 }
 
 .btn-primary {
-    background-color: var(--primary-color);
-    color: white;
+    background-color: var(--krds-blue);
+    color: #FFFFFF;
+    box-shadow: var(--shadow-sm);
 }
 
 .btn-primary:hover {
-    background-color: #1d4ed8;
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-lg);
+    background-color: var(--krds-blue-dark);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
+    box-shadow: var(--shadow-sm);
 }
 
 .btn-secondary {
-    background-color: var(--secondary-color);
-    color: white;
+    background-color: var(--krds-gray-700);
+    color: #FFFFFF;
+    box-shadow: var(--shadow-sm);
 }
 
 .btn-secondary:hover {
-    background-color: #7c3aed;
+    background-color: var(--krds-gray-900);
+    box-shadow: var(--shadow-md);
 }
 
 .btn-success {
-    background-color: var(--success-color);
-    color: white;
+    background-color: var(--krds-success);
+    color: #FFFFFF;
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-success:hover {
+    background-color: #218838;
+    box-shadow: var(--shadow-md);
 }
 
 /* Lotto Numbers Display */
 .lotto-numbers {
     display: flex;
     flex-wrap: wrap;
-    gap: 12px;
-    margin: 20px 0;
+    gap: var(--spacing-md);
+    margin: var(--spacing-lg) 0;
 }
 
 .lotto-ball {
@@ -152,235 +269,308 @@ header p {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.25rem;
+    font-size: var(--font-size-xl);
     font-weight: 700;
-    color: white;
+    color: #FFFFFF;
     box-shadow: var(--shadow);
-    transition: transform 0.3s ease;
+    transition: transform 0.2s ease;
 }
 
 .lotto-ball:hover {
-    transform: scale(1.1);
+    transform: scale(1.05);
 }
 
-.lotto-ball.yellow { background: linear-gradient(135deg, #fbbf24, #f59e0b); }
-.lotto-ball.blue { background: linear-gradient(135deg, #60a5fa, #3b82f6); }
-.lotto-ball.red { background: linear-gradient(135deg, #f87171, #ef4444); }
-.lotto-ball.gray { background: linear-gradient(135deg, #9ca3af, #6b7280); }
-.lotto-ball.green { background: linear-gradient(135deg, #34d399, #10b981); }
-
-/* Number by range */
-.lotto-ball.range-1 { background: linear-gradient(135deg, #fbbf24, #f59e0b); } /* 1-9 */
-.lotto-ball.range-2 { background: linear-gradient(135deg, #60a5fa, #3b82f6); } /* 10-18 */
-.lotto-ball.range-3 { background: linear-gradient(135deg, #f87171, #ef4444); } /* 19-27 */
-.lotto-ball.range-4 { background: linear-gradient(135deg, #9ca3af, #6b7280); } /* 28-36 */
-.lotto-ball.range-5 { background: linear-gradient(135deg, #34d399, #10b981); } /* 37-45 */
+/* 로또 번호 범위별 색상 - 명확하고 접근 가능한 색상 */
+.lotto-ball.range-1 { background: #FBBF24; } /* 1-9: 노란색 */
+.lotto-ball.range-2 { background: #3B82F6; } /* 10-18: 파란색 */
+.lotto-ball.range-3 { background: #EF4444; } /* 19-27: 빨간색 */
+.lotto-ball.range-4 { background: #6B7280; } /* 28-36: 회색 */
+.lotto-ball.range-5 { background: #10B981; } /* 37-45: 녹색 */
 
 .lotto-ball.bonus {
-    border: 3px solid #fbbf24;
-    background: linear-gradient(135deg, #fee2e2, #fecaca);
-    color: var(--danger-color);
+    border: 3px solid #FBBF24;
+    background: #FEF3C7;
+    color: var(--krds-gray-900);
 }
 
 /* Prediction Results */
 .prediction-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-    gap: 12px;
-    margin: 20px 0;
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    gap: var(--spacing-md);
+    margin: var(--spacing-lg) 0;
+}
+
+.prediction-grid-compact {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+    gap: var(--spacing-sm);
+    margin: var(--spacing-md) 0;
 }
 
 .prediction-item {
     text-align: center;
-    padding: 12px;
-    background: var(--bg-color);
+    padding: var(--spacing-md);
+    background: var(--krds-gray-100);
     border-radius: 8px;
-    border: 2px solid var(--border-color);
-    transition: all 0.3s ease;
+    border: 1px solid var(--border-color);
+    transition: all 0.2s ease;
 }
 
 .prediction-item:hover {
-    border-color: var(--primary-color);
-    transform: translateY(-2px);
+    border-color: var(--krds-blue);
+    box-shadow: var(--shadow-sm);
 }
 
 .prediction-number {
     width: 50px;
     height: 50px;
-    margin: 0 auto 8px;
+    margin: 0 auto var(--spacing-sm);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.25rem;
+    font-size: var(--font-size-xl);
     font-weight: 700;
-    color: white;
+    color: #FFFFFF;
 }
 
 .prediction-score {
-    font-size: 0.875rem;
+    font-size: var(--font-size-sm);
     color: var(--text-secondary);
     font-weight: 500;
 }
 
 .prediction-rank {
-    font-size: 0.75rem;
+    font-size: var(--font-size-xs);
     color: var(--text-secondary);
-    margin-top: 4px;
+    margin-top: var(--spacing-xs);
 }
 
-/* Statistics */
+/* Statistics - KRDS 스타일: 명확한 통계 표시 */
 .stat-box {
     text-align: center;
-    padding: 20px;
-    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-    color: white;
-    border-radius: 12px;
-    box-shadow: var(--shadow);
+    padding: var(--spacing-lg);
+    background: var(--card-bg);
+    border: 2px solid var(--krds-blue);
+    border-radius: 8px;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.2s ease;
+}
+
+.stat-box:hover {
+    box-shadow: var(--shadow-md);
+    border-color: var(--krds-blue-dark);
 }
 
 .stat-value {
-    font-size: 2.5rem;
+    font-size: var(--font-size-3xl);
     font-weight: 700;
-    margin-bottom: 8px;
+    margin-bottom: var(--spacing-sm);
+    color: var(--krds-blue);
+    letter-spacing: -0.02em;
 }
 
 .stat-label {
-    font-size: 0.875rem;
-    opacity: 0.9;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    font-weight: 500;
 }
 
 /* Backtest Results */
 .backtest-table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 20px;
+    margin-top: var(--spacing-lg);
+    font-size: var(--font-size-sm);
 }
 
-/* 테이블 래퍼 (모바일 가로 스크롤용) */
 .table-wrapper {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
-    margin: 20px 0;
-}
-
-@media (max-width: 768px) {
-    .table-wrapper {
-        margin: 16px -12px; /* 카드 패딩 보정 */
-        padding: 0 12px;
-    }
+    margin: var(--spacing-lg) 0;
 }
 
 .backtest-table th,
 .backtest-table td {
-    padding: 12px;
+    padding: var(--spacing-md);
     text-align: left;
     border-bottom: 1px solid var(--border-color);
 }
 
 .backtest-table th {
-    background-color: var(--bg-color);
+    background-color: var(--krds-gray-100);
     font-weight: 600;
     color: var(--text-primary);
+    font-size: var(--font-size-base);
 }
 
 .backtest-table tr:hover {
-    background-color: var(--bg-color);
+    background-color: var(--krds-blue-subtle);
 }
 
 /* Charts */
 .chart-container {
     position: relative;
     height: 300px;
-    margin: 20px 0;
+    margin: var(--spacing-lg) 0;
+}
+
+.chart-container-compact {
+    position: relative;
+    height: 250px;
+    margin: var(--spacing-md) 0;
 }
 
 /* Weights Display */
 .weights-container {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 16px;
-    margin: 20px 0;
+    gap: var(--spacing-md);
+    margin: var(--spacing-lg) 0;
+}
+
+.weights-container-compact {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: var(--spacing-sm);
+    margin: var(--spacing-md) 0;
 }
 
 .weight-item {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--spacing-sm);
 }
 
 .weight-label {
-    font-size: 0.875rem;
+    font-size: var(--font-size-sm);
     font-weight: 500;
     color: var(--text-secondary);
 }
 
 .weight-bar {
-    height: 24px;
-    background-color: var(--bg-color);
-    border-radius: 12px;
+    height: 28px;
+    background-color: var(--krds-gray-200);
+    border-radius: 4px;
     overflow: hidden;
     position: relative;
 }
 
 .weight-fill {
     height: 100%;
-    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
-    border-radius: 12px;
-    transition: width 0.5s ease;
+    background: var(--krds-blue);
+    border-radius: 4px;
+    transition: width 0.3s ease;
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    padding-right: 8px;
+    padding-right: var(--spacing-sm);
 }
 
 .weight-value {
-    font-size: 0.75rem;
-    color: white;
+    font-size: var(--font-size-xs);
+    color: #FFFFFF;
     font-weight: 600;
 }
 
-/* Controls */
+/* Controls - KRDS 스타일: 명확한 폼 컨트롤 */
 .controls {
     display: flex;
     flex-wrap: wrap;
-    gap: 16px;
-    align-items: center;
-    margin: 20px 0;
-    padding: 20px;
-    background: var(--bg-color);
+    gap: var(--spacing-md);
+    align-items: flex-start;
+    margin: var(--spacing-lg) 0;
+    padding: var(--spacing-lg);
+    background: var(--krds-blue-subtle);
     border-radius: 8px;
+    border: 1px solid var(--krds-gray-200);
+}
+
+/* 컴팩트 컨트롤 */
+.controls-compact {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: var(--spacing-sm);
+    align-items: end;
+}
+
+.control-group-compact {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.control-group-compact label {
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.control-group-compact input,
+.control-group-compact select {
+    padding: 8px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: var(--font-size-sm);
+    background-color: #FFFFFF;
+    transition: all 0.2s ease;
+}
+
+.control-group-compact input:focus,
+.control-group-compact select:focus {
+    outline: none;
+    border-color: var(--krds-blue);
+    box-shadow: 0 0 0 2px rgba(0, 78, 162, 0.1);
+}
+
+.control-group-compact small {
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+    margin-top: 2px;
+}
+
+@media (max-width: 768px) {
+    .controls-compact {
+        grid-template-columns: 1fr;
+    }
 }
 
 .control-group {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--spacing-sm);
+    flex: 1;
+    min-width: 200px;
 }
 
 .control-group label {
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: var(--text-secondary);
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    color: var(--text-primary);
 }
 
 .control-group input,
 .control-group select {
     padding: 10px 12px;
-    border: 1px solid var(--border-color);
+    border: 2px solid var(--border-color);
     border-radius: 6px;
-    font-size: 1rem;
-    background-color: white;
-    transition: border-color 0.3s ease;
+    font-size: var(--font-size-base);
+    background-color: #FFFFFF;
+    transition: all 0.2s ease;
+    font-family: var(--font-family-base);
 }
 
 .control-group input:focus,
 .control-group select:focus {
     outline: none;
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    border-color: var(--krds-blue);
+    box-shadow: 0 0 0 3px rgba(0, 78, 162, 0.1);
+}
+
+.control-group input:hover,
+.control-group select:hover {
+    border-color: var(--krds-blue-light);
 }
 
 /* Loading */
@@ -388,53 +578,59 @@ header p {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 40px;
+    padding: var(--spacing-xl);
 }
 
 .spinner {
     width: 40px;
     height: 40px;
-    border: 4px solid var(--border-color);
-    border-top-color: var(--primary-color);
+    border: 4px solid var(--krds-gray-200);
+    border-top-color: var(--krds-blue);
     border-radius: 50%;
-    animation: spin 1s linear infinite;
+    animation: spin 0.8s linear infinite;
 }
 
 @keyframes spin {
     to { transform: rotate(360deg); }
 }
 
-/* Tabs */
+/* Tabs - KRDS 스타일: 명확한 탭 인터페이스 */
 .tabs {
     display: flex;
-    gap: 8px;
-    margin-bottom: 24px;
-    border-bottom: 2px solid var(--border-color);
+    gap: var(--spacing-xs);
+    margin-bottom: var(--spacing-md);
+    border-bottom: 2px solid var(--krds-gray-200);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .tab {
-    padding: 12px 24px;
+    padding: var(--spacing-md) var(--spacing-lg);
     background: none;
     border: none;
     border-bottom: 3px solid transparent;
-    font-size: 1rem;
+    font-size: var(--font-size-base);
     font-weight: 500;
     color: var(--text-secondary);
     cursor: pointer;
-    transition: all 0.3s ease;
-    -webkit-tap-highlight-color: transparent; /* 모바일 탭 하이라이트 제거 */
-    min-height: 44px; /* 터치 친화적 */
+    transition: all 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+    min-height: 44px;
     display: inline-flex;
     align-items: center;
+    white-space: nowrap;
+    font-family: var(--font-family-base);
 }
 
 .tab:hover {
-    color: var(--primary-color);
+    color: var(--krds-blue);
+    background-color: var(--krds-blue-subtle);
 }
 
 .tab.active {
-    color: var(--primary-color);
-    border-bottom-color: var(--primary-color);
+    color: var(--krds-blue);
+    border-bottom-color: var(--krds-blue);
+    font-weight: 600;
 }
 
 .tab-content {
@@ -445,95 +641,155 @@ header p {
     display: block;
 }
 
-/* Responsive */
+/* Combination Cards */
+.combination-card {
+    background: var(--card-bg);
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+    transition: all 0.2s ease;
+}
+
+.combination-card:hover {
+    border-color: var(--krds-blue);
+    box-shadow: var(--shadow-md);
+}
+
+/* 컴팩트 조합 결과 */
+.combinations-compact {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.combinations-compact .combination-card {
+    padding: var(--spacing-sm);
+    margin-bottom: var(--spacing-sm);
+}
+
+/* Tooltip */
+.tooltip {
+    position: relative;
+    display: inline-block;
+}
+
+.tooltip .tooltiptext {
+    visibility: hidden;
+    width: 200px;
+    background-color: var(--krds-gray-900);
+    color: #FFFFFF;
+    text-align: center;
+    border-radius: 6px;
+    padding: var(--spacing-sm);
+    position: absolute;
+    z-index: 1;
+    bottom: 125%;
+    left: 50%;
+    margin-left: -100px;
+    opacity: 0;
+    transition: opacity 0.2s;
+    font-size: var(--font-size-sm);
+}
+
+.tooltip:hover .tooltiptext {
+    visibility: visible;
+    opacity: 1;
+}
+
+/* Small text */
+small {
+    display: block;
+    margin-top: var(--spacing-xs);
+    font-size: var(--font-size-sm);
+}
+
+/* Control group enhancements */
+.control-group small {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    margin-top: var(--spacing-xs);
+    line-height: var(--line-height-normal);
+}
+
+.control-group small strong {
+    color: var(--krds-blue);
+    font-weight: 600;
+}
+
+/* Responsive - 모바일 최적화 */
 @media (max-width: 768px) {
     .container {
-        padding: 12px;
+        padding: var(--spacing-md);
     }
 
     header {
-        padding: 20px 0;
-        margin-bottom: 20px;
+        padding: var(--spacing-lg) 0;
+        margin-bottom: var(--spacing-lg);
     }
 
     header h1 {
-        font-size: 1.5rem;
+        font-size: var(--font-size-2xl);
     }
 
     header p {
-        font-size: 0.875rem;
+        font-size: var(--font-size-base);
     }
 
     .card {
-        padding: 16px;
-        margin-bottom: 16px;
-        border-radius: 8px;
+        padding: var(--spacing-md);
+        margin-bottom: var(--spacing-md);
+        border-radius: 6px;
     }
 
     .card-header {
         flex-direction: column;
         align-items: flex-start;
-        gap: 12px;
+        gap: var(--spacing-md);
     }
 
     .card-title {
-        font-size: 1.25rem;
+        font-size: var(--font-size-xl);
     }
 
     .lotto-ball {
         width: 44px;
         height: 44px;
-        font-size: 1rem;
+        font-size: var(--font-size-lg);
     }
 
     .prediction-grid {
-        grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
-        gap: 8px;
+        grid-template-columns: repeat(auto-fill, minmax(75px, 1fr));
+        gap: var(--spacing-sm);
     }
 
     .prediction-item {
-        padding: 8px;
+        padding: var(--spacing-sm);
     }
 
     .prediction-number {
         width: 44px;
         height: 44px;
-        font-size: 1rem;
+        font-size: var(--font-size-lg);
     }
 
     .stat-value {
-        font-size: 2rem;
+        font-size: var(--font-size-2xl);
     }
 
     .stat-label {
-        font-size: 0.75rem;
-    }
-
-    /* Tabs - 스크롤 가능하게 */
-    .tabs {
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: none; /* Firefox */
-        -ms-overflow-style: none; /* IE and Edge */
-    }
-
-    .tabs::-webkit-scrollbar {
-        display: none; /* Chrome, Safari, Opera */
+        font-size: var(--font-size-xs);
     }
 
     .tab {
         padding: 10px 16px;
-        font-size: 0.875rem;
-        white-space: nowrap;
-        min-width: fit-content;
+        font-size: var(--font-size-sm);
     }
 
-    /* Controls - 모바일에서 세로 스택 */
     .controls {
         flex-direction: column;
         align-items: stretch;
-        gap: 12px;
-        padding: 16px;
+        gap: var(--spacing-md);
+        padding: var(--spacing-md);
     }
 
     .control-group {
@@ -544,22 +800,16 @@ header p {
     .control-group select {
         width: 100%;
         padding: 12px;
-        font-size: 1rem;
-        -webkit-appearance: none;
-        -moz-appearance: none;
-        appearance: none;
+        font-size: var(--font-size-base);
     }
 
-    /* 버튼 - 터치 친화적 */
     .btn {
         width: 100%;
         padding: 14px 20px;
-        font-size: 1rem;
+        font-size: var(--font-size-base);
         justify-content: center;
-        min-height: 44px; /* 최소 터치 영역 */
     }
 
-    /* Grid - 모바일에서 1열 */
     .grid-2,
     .grid-3 {
         grid-template-columns: 1fr;
@@ -569,73 +819,63 @@ header p {
         grid-template-columns: 1fr;
     }
 
-    /* 테이블 가로 스크롤 */
-    .backtest-table {
-        display: block;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-    }
-
     .backtest-table th,
     .backtest-table td {
-        padding: 8px;
-        font-size: 0.875rem;
-        white-space: nowrap;
+        padding: var(--spacing-sm);
+        font-size: var(--font-size-sm);
     }
 
-    /* 차트 높이 조정 */
     .chart-container {
         height: 250px;
     }
 
-    /* Stat box */
     .stat-box {
-        padding: 16px;
+        padding: var(--spacing-md);
     }
 }
 
 /* 작은 모바일 (480px 이하) */
 @media (max-width: 480px) {
     .container {
-        padding: 8px;
+        padding: var(--spacing-sm);
     }
 
     header {
-        padding: 16px 0;
+        padding: var(--spacing-md) 0;
     }
 
     header h1 {
-        font-size: 1.25rem;
-        margin-bottom: 8px;
+        font-size: var(--font-size-xl);
+        margin-bottom: var(--spacing-xs);
     }
 
     header p {
-        font-size: 0.75rem;
+        font-size: var(--font-size-sm);
     }
 
     .card {
-        padding: 12px;
+        padding: var(--spacing-md);
     }
 
     .card-title {
-        font-size: 1.1rem;
+        font-size: var(--font-size-lg);
     }
 
     .lotto-ball {
         width: 40px;
         height: 40px;
-        font-size: 0.875rem;
+        font-size: var(--font-size-base);
     }
 
     .prediction-grid {
-        grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(65px, 1fr));
         gap: 6px;
     }
 
     .prediction-number {
         width: 40px;
         height: 40px;
-        font-size: 0.875rem;
+        font-size: var(--font-size-base);
     }
 
     .prediction-item {
@@ -643,29 +883,29 @@ header p {
     }
 
     .prediction-score {
-        font-size: 0.75rem;
+        font-size: var(--font-size-xs);
     }
 
     .prediction-rank {
-        font-size: 0.7rem;
+        font-size: var(--font-size-xs);
     }
 
     .stat-value {
-        font-size: 1.75rem;
+        font-size: var(--font-size-xl);
     }
 
     .stat-label {
-        font-size: 0.7rem;
+        font-size: var(--font-size-xs);
     }
 
     .tab {
         padding: 8px 12px;
-        font-size: 0.8rem;
+        font-size: var(--font-size-xs);
     }
 
     .btn {
         padding: 12px 16px;
-        font-size: 0.9rem;
+        font-size: var(--font-size-sm);
     }
 
     .chart-container {
@@ -673,32 +913,30 @@ header p {
     }
 
     .weight-bar {
-        height: 20px;
+        height: 24px;
     }
 
     .weight-label {
-        font-size: 0.8rem;
+        font-size: var(--font-size-xs);
     }
 
     .weight-value {
-        font-size: 0.7rem;
+        font-size: var(--font-size-xs);
     }
 
     .backtest-table th,
     .backtest-table td {
         padding: 6px;
-        font-size: 0.8rem;
+        font-size: var(--font-size-xs);
     }
 
-    /* 조합 카드 모바일 최적화 */
     .combination-card {
-        padding: 12px;
+        padding: var(--spacing-md);
     }
 }
 
 /* 터치 디바이스 최적화 */
 @media (hover: none) and (pointer: coarse) {
-    /* 터치 디바이스에서 hover 효과 제거 */
     .prediction-item:hover {
         transform: none;
     }
@@ -711,7 +949,6 @@ header p {
         transform: none;
     }
 
-    /* 터치 피드백 강화 */
     .btn:active {
         transform: scale(0.98);
         opacity: 0.9;
@@ -719,6 +956,7 @@ header p {
 
     .tab:active {
         opacity: 0.7;
+        background-color: var(--krds-blue-subtle);
     }
 }
 
@@ -729,84 +967,33 @@ header p {
     }
 
     header {
-        padding: 16px 0;
+        padding: var(--spacing-md) 0;
     }
 
     header h1 {
-        font-size: 1.25rem;
+        font-size: var(--font-size-xl);
     }
 }
 
-/* Tooltip */
-.tooltip {
-    position: relative;
-    display: inline-block;
+/* 접근성 향상 - 포커스 표시 */
+*:focus-visible {
+    outline: 3px solid var(--krds-blue);
+    outline-offset: 2px;
 }
 
-.tooltip .tooltiptext {
-    visibility: hidden;
-    width: 200px;
-    background-color: var(--text-primary);
-    color: white;
-    text-align: center;
-    border-radius: 6px;
-    padding: 8px;
-    position: absolute;
-    z-index: 1;
-    bottom: 125%;
-    left: 50%;
-    margin-left: -100px;
-    opacity: 0;
-    transition: opacity 0.3s;
-    font-size: 0.875rem;
-}
-
-.tooltip:hover .tooltiptext {
-    visibility: visible;
-    opacity: 1;
-}
-
-/* Combination Cards */
-.combination-card {
-    background: linear-gradient(135deg, #f8fafc, #f1f5f9);
-    border: 2px solid #e2e8f0;
-    border-radius: 12px;
-    padding: 16px;
-    margin-bottom: 12px;
-    transition: all 0.3s ease;
-}
-
-.combination-card:hover {
-    border-color: #2563eb;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-}
-
-/* Small text */
-small {
-    display: block;
-    margin-top: 4px;
-}
-
-/* Input tooltips */
-input[title]:hover {
-    cursor: help;
-}
-
-/* Control group enhancements */
-.control-group small {
-    font-size: 0.8rem;
-    color: #64748b;
-    margin-top: 4px;
-    line-height: 1.4;
-}
-
-.control-group small strong {
-    color: var(--primary-color);
-}
-
-@media (max-width: 480px) {
-    .control-group small {
-        font-size: 0.75rem;
+/* 인쇄 스타일 */
+@media print {
+    header {
+        background: var(--krds-blue) !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    
+    .btn {
+        display: none;
+    }
+    
+    .card {
+        break-inside: avoid;
     }
 }

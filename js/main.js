@@ -24,30 +24,42 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 /**
- * Load data (from embedded JavaScript file)
+ * Load data from CSV file (automatically finds the latest CSV)
  */
-function loadData() {
-    console.log('Loading lotto data...');
+async function loadData() {
+    console.log('Loading lotto data from CSV...');
 
     // Show loading indicator
     showLoading(true);
 
     try {
-        // Check if LOTTO_DATA is available (from lotto-data.js)
-        if (typeof LOTTO_DATA === 'undefined') {
-            throw new Error('LOTTO_DATA가 로드되지 않았습니다. lotto-data.js 파일을 확인하세요.');
+        // Find the latest CSV file
+        const csvFiles = await findLatestCSV();
+        if (!csvFiles.latest) {
+            throw new Error('CSV 파일을 찾을 수 없습니다. data 폴더에 lotto_*.csv 파일이 있는지 확인하세요.');
         }
 
-        console.log(`LOTTO_DATA found: ${LOTTO_DATA.length} rounds`);
+        console.log(`Loading CSV: ${csvFiles.latest}`);
 
-        // Initialize analyzer with direct data
+        // Load CSV file
+        const response = await fetch(csvFiles.latest);
+        if (!response.ok) {
+            throw new Error(`CSV 파일 로드 실패: ${response.status} ${response.statusText}`);
+        }
+
+        const csvText = await response.text();
+        
+        // Parse CSV using analyzer
         analyzer = new LottoAnalyzer();
-        analyzer.data = LOTTO_DATA;
+        analyzer.loadData(csvText);
 
         console.log(`Data loaded successfully`);
         console.log(`Total rounds: ${analyzer.data.length}`);
         console.log(`First round: ${analyzer.data[0].round} (${analyzer.data[0].date})`);
         console.log(`Last round: ${analyzer.data[analyzer.data.length - 1].round} (${analyzer.data[analyzer.data.length - 1].date})`);
+
+        // Update UI with current data info
+        updateDataInfo();
 
         backtester = new Backtester(analyzer);
         ensembleAnalyzer = new EnsembleAnalyzer();
@@ -68,26 +80,36 @@ function loadData() {
         // Hide loading indicator
         showLoading(false);
 
-        // Show success message
-        showMessage('데이터 로드 완료! 분석이 자동으로 시작되었습니다.', 'success');
+        const lastRound = analyzer.data[analyzer.data.length - 1].round;
+        showMessage(`데이터 로드 완료! (최신 회차: ${lastRound}회) 다음 회차(${lastRound + 1}회) 예측을 시작합니다.`, 'success');
 
     } catch (error) {
         console.error('Error loading data:', error);
         showLoading(false);
 
+        // Try fallback to LOTTO_DATA if available
+        if (typeof LOTTO_DATA !== 'undefined' && LOTTO_DATA.length > 0) {
+            console.log('Falling back to embedded LOTTO_DATA...');
+            analyzer = new LottoAnalyzer();
+            analyzer.data = LOTTO_DATA;
+            backtester = new Backtester(analyzer);
+            updateStatistics();
+            runNextRoundPrediction();
+            showLoading(false);
+            showMessage('CSV 파일을 찾을 수 없어 내장 데이터를 사용합니다. CSV 파일을 data 폴더에 추가하면 자동으로 업데이트됩니다.', 'warning');
+            return;
+        }
+
         const errorMsg = `
 데이터 로딩 실패: ${error.message}
 
 문제:
-- lotto-data.js 파일이 제대로 로드되지 않았을 수 있습니다.
+- CSV 파일을 찾을 수 없거나 로드할 수 없습니다.
 
 해결 방법:
-1. 브라우저 콘솔(F12)을 열어 오류 메시지 확인
-2. index.html에서 lotto-data.js가 제대로 포함되었는지 확인
-3. 파일 경로: js/lotto-data.js
-
-서버 없이 바로 실행:
-- 그냥 index.html을 더블클릭하여 열면 됩니다!
+1. data 폴더에 lotto_*.csv 파일이 있는지 확인
+2. 서버를 사용하여 실행 (python3 -m http.server 8000)
+3. 브라우저 콘솔(F12)을 열어 오류 메시지 확인
         `;
 
         alert(errorMsg);
@@ -99,6 +121,56 @@ function loadData() {
                 <pre style="white-space: pre-wrap;">${errorMsg}</pre>
             </div>
         `);
+    }
+}
+
+/**
+ * Find the latest CSV file in data directory
+ */
+async function findLatestCSV() {
+    // Common CSV file patterns
+    const patterns = [
+        'data/lotto_1_*.csv',
+        'data/lotto_*.csv',
+        './data/lotto_*.csv',
+        '../data/lotto_*.csv'
+    ];
+
+    // Try common filenames first (most likely)
+    const commonFiles = [];
+    for (let round = 1300; round >= 1100; round--) {
+        commonFiles.push(`data/lotto_1_${round}.csv`);
+    }
+
+    // Try each common file
+    for (const file of commonFiles) {
+        try {
+            const response = await fetch(file, { method: 'HEAD' });
+            if (response.ok) {
+                return { latest: file, found: true };
+            }
+        } catch (e) {
+            // Continue to next file
+        }
+    }
+
+    // If no common file found, return null (will fallback to LOTTO_DATA)
+    return { latest: null, found: false };
+}
+
+/**
+ * Update data info display
+ */
+function updateDataInfo() {
+    if (!analyzer || !analyzer.data || analyzer.data.length === 0) return;
+
+    const lastRound = analyzer.data[analyzer.data.length - 1];
+    const nextRound = lastRound.round + 1;
+    
+    // Update any data info displays if they exist
+    const dataInfoEl = document.getElementById('data-info');
+    if (dataInfoEl) {
+        dataInfoEl.textContent = `최신 회차: ${lastRound.round}회 (${lastRound.date}) → 예측 대상: ${nextRound}회`;
     }
 }
 
@@ -330,8 +402,14 @@ function runAnalysis() {
     }
 
     const nextRound = lastRound + 1;
-    document.getElementById('next-round-info').textContent =
-        `${nextRound}회차 예측 (${getMethodName(method)}, 최근 ${rounds}회차 데이터 기반)`;
+    const methodName = getMethodName(method);
+    const nextRoundInfoEl = document.getElementById('next-round-info');
+    if (nextRoundInfoEl) {
+        nextRoundInfoEl.innerHTML = `
+            <span style="font-size: 0.875rem; font-weight: 600; color: #004EA2;">${nextRound}회차</span>
+        `;
+    }
+    updateDataInfo();
 
     displayPredictions(currentAnalysis, predictCount);
     displayWeights(currentAnalysis);
@@ -381,8 +459,15 @@ function runNextRoundPrediction() {
     }
 
     const nextRound = lastRound + 1;
-    document.getElementById('next-round-info').textContent =
-        `${nextRound}회차 예측 (${getMethodName(method)}, 최근 ${rounds}회차 데이터 기반)`;
+    const methodName = getMethodName(method);
+    const nextRoundInfoEl = document.getElementById('next-round-info');
+    if (nextRoundInfoEl) {
+        nextRoundInfoEl.innerHTML = `
+            <span style="font-size: 1.1rem; font-weight: 600; color: #1e40af;">${nextRound}회차 예측</span><br>
+            <span style="font-size: 0.9rem; color: #64748b;">${methodName} | 최근 ${rounds}회차 데이터 사용</span>
+        `;
+    }
+    updateDataInfo();
 
     displayPredictions(currentAnalysis, predictCount);
     displayWeights(currentAnalysis);
@@ -660,28 +745,81 @@ function displayPredictions(analysis, count) {
 
     const predictions = analysis.predictions.slice(0, count);
 
+    // 컴팩트 그리드로 모든 번호 표시
+    const grid = document.createElement('div');
+    grid.className = 'prediction-grid-compact';
+    grid.style.cssText = 'gap: 8px;';
+
     predictions.forEach((pred, idx) => {
-        const item = document.createElement('div');
-        item.className = 'prediction-item';
-
-        const ball = document.createElement('div');
-        ball.className = `prediction-number lotto-ball ${getBallColorClass(pred.number)}`;
-        ball.textContent = pred.number;
-
-        const score = document.createElement('div');
-        score.className = 'prediction-score';
-        score.textContent = `점수: ${(pred.score * 100).toFixed(1)}`;
-
-        const rank = document.createElement('div');
-        rank.className = 'prediction-rank';
-        rank.textContent = `#${pred.rank}`;
-
-        item.appendChild(ball);
-        item.appendChild(score);
-        item.appendChild(rank);
-
-        container.appendChild(item);
+        const item = createPredictionItem(pred, idx + 1, idx < 6);
+        grid.appendChild(item);
     });
+
+    container.appendChild(grid);
+}
+
+/**
+ * Create a prediction item element (compact version)
+ */
+function createPredictionItem(pred, displayRank, isTop6) {
+    const item = document.createElement('div');
+    item.className = 'prediction-item';
+    item.style.cssText = `
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        padding: 10px 8px;
+        background: ${isTop6 ? '#E6F2FF' : '#ffffff'};
+        border: ${isTop6 ? '2px solid #004EA2' : '1px solid #e2e8f0'};
+        border-radius: 8px;
+        transition: all 0.2s ease;
+    `;
+
+    const ball = document.createElement('div');
+    ball.className = `prediction-number lotto-ball ${getBallColorClass(pred.number)}`;
+    ball.textContent = pred.number;
+    ball.style.cssText = `
+        font-size: ${isTop6 ? '1.125rem' : '1rem'};
+        font-weight: 700;
+        width: ${isTop6 ? '44px' : '40px'};
+        height: ${isTop6 ? '44px' : '40px'};
+        line-height: ${isTop6 ? '44px' : '40px'};
+    `;
+
+    const rank = document.createElement('div');
+    rank.style.cssText = `
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: ${isTop6 ? '#004EA2' : '#64748b'};
+    `;
+    rank.textContent = `#${displayRank}`;
+
+    const score = document.createElement('div');
+    score.style.cssText = `
+        font-size: 0.7rem;
+        color: #94a3b8;
+    `;
+    const scorePercent = (pred.score * 100).toFixed(1);
+    score.textContent = `${scorePercent}점`;
+
+    item.appendChild(ball);
+    item.appendChild(rank);
+    item.appendChild(score);
+
+    // 호버 효과
+    if (window.matchMedia('(hover: hover)').matches) {
+        item.addEventListener('mouseenter', () => {
+            item.style.borderColor = '#004EA2';
+            item.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+        });
+        item.addEventListener('mouseleave', () => {
+            item.style.borderColor = isTop6 ? '#004EA2' : '#e2e8f0';
+            item.style.boxShadow = 'none';
+        });
+    }
+
+    return item;
 }
 
 /**
@@ -1044,7 +1182,7 @@ function runWalkForwardBacktest() {
 }
 
 /**
- * Display backtest statistics
+ * Display backtest statistics with improved UX
  */
 function displayBacktestStats(backtest) {
     const container = document.getElementById('backtest-stats');
@@ -1054,80 +1192,185 @@ function displayBacktestStats(backtest) {
     const methodName = getMethodName(backtest.method) || backtest.method || '알 수 없음';
     const isWalkForward = backtest.isWalkForward || false;
 
-    const statCards = [
-        { label: '백테스트 모드', value: isWalkForward ? 'Walk-Forward' : '표준', highlight: true },
-        { label: '분석 방법', value: methodName, highlight: true },
-        { label: '평균 적중 개수', value: stats.averageHits ? stats.averageHits.toFixed(2) : 'N/A' },
-        { label: '최대 적중 개수', value: stats.maxHits !== undefined ? stats.maxHits : 'N/A' }
-    ];
+    // 주요 성과 카드 (강조)
+    const mainStats = document.createElement('div');
+    mainStats.style.cssText = 'display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;';
+    
+    const createStatCard = (label, value, description, highlight = false, color = '#3b82f6') => {
+        const card = document.createElement('div');
+        card.style.cssText = `
+            background: ${highlight ? `linear-gradient(135deg, ${color}15, ${color}25)` : '#ffffff'};
+            border: ${highlight ? `2px solid ${color}` : '1px solid #e2e8f0'};
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        `;
+        
+        const valueDiv = document.createElement('div');
+        valueDiv.style.cssText = `
+            font-size: 2rem;
+            font-weight: 700;
+            color: ${color};
+            margin-bottom: 8px;
+        `;
+        valueDiv.textContent = value;
+        
+        const labelDiv = document.createElement('div');
+        labelDiv.style.cssText = `
+            font-size: 1rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 4px;
+        `;
+        labelDiv.textContent = label;
+        
+        const descDiv = document.createElement('div');
+        descDiv.style.cssText = `
+            font-size: 0.8rem;
+            color: #64748b;
+            line-height: 1.4;
+        `;
+        descDiv.textContent = description;
+        
+        card.appendChild(valueDiv);
+        card.appendChild(labelDiv);
+        if (description) card.appendChild(descDiv);
+        
+        return card;
+    };
 
-    // Walk-Forward 또는 metrics.js 결과인 경우 추가 지표 표시
-    if (stats.hitRates) {
-        // k개 이상 적중률 추가
-        if (stats.hitRates[3] !== undefined) {
-            const hit3Rate = (stats.hitRates[3] * 100).toFixed(1);
-            const lift3 = stats.lifts && stats.lifts[3] ? ` (${stats.lifts[3].toFixed(2)}x)` : '';
-            statCards.push({ label: '3개+ 적중률', value: `${hit3Rate}%${lift3}` });
-        }
-        if (stats.hitRates[4] !== undefined) {
-            const hit4Rate = (stats.hitRates[4] * 100).toFixed(2);
-            const lift4 = stats.lifts && stats.lifts[4] ? ` (${stats.lifts[4].toFixed(2)}x)` : '';
-            statCards.push({ label: '4개+ 적중률', value: `${hit4Rate}%${lift4}` });
-        }
+    // 평균 적중 개수 (가장 중요)
+    const avgHits = stats.averageHits ? stats.averageHits.toFixed(2) : 'N/A';
+    const avgHitsDesc = avgHits !== 'N/A' ? `무작위 선택 대비 ${(avgHits / 0.133).toFixed(1)}배` : '';
+    mainStats.appendChild(createStatCard(
+        '평균 적중 개수',
+        avgHits !== 'N/A' ? avgHits + '개' : 'N/A',
+        avgHitsDesc,
+        true,
+        '#10b981'
+    ));
+
+    // 3개 이상 적중률
+    let hit3Rate, hit3Desc, hit3Lift;
+    if (stats.hitRates && stats.hitRates[3] !== undefined) {
+        hit3Rate = (stats.hitRates[3] * 100).toFixed(1);
+        hit3Lift = stats.lifts && stats.lifts[3] ? stats.lifts[3] : null;
+        hit3Desc = hit3Lift ? `무작위 대비 ${hit3Lift.toFixed(1)}배 높음` : '';
+    } else if (stats.hit3PlusRate !== undefined) {
+        hit3Rate = (stats.hit3PlusRate * 100).toFixed(1);
+        hit3Desc = '3개 이상 맞춘 비율';
     } else {
-        // 기존 통계 (호환성)
-        if (stats.top6Accuracy !== undefined) {
-            statCards.push({ label: 'Top 6 정확도', value: `${(stats.top6Accuracy * 100).toFixed(1)}%` });
-        }
-        if (stats.top10Accuracy !== undefined) {
-            statCards.push({ label: 'Top 10 정확도', value: `${(stats.top10Accuracy * 100).toFixed(1)}%` });
-        }
-        if (stats.hit3PlusRate !== undefined) {
-            statCards.push({ label: '3개 이상 적중률', value: `${(stats.hit3PlusRate * 100).toFixed(1)}%` });
-        }
+        hit3Rate = 'N/A';
+        hit3Desc = '';
+    }
+    mainStats.appendChild(createStatCard(
+        '3개 이상 적중률',
+        hit3Rate !== 'N/A' ? hit3Rate + '%' : 'N/A',
+        hit3Desc,
+        false,
+        '#3b82f6'
+    ));
+
+    // 최대 적중 개수
+    const maxHits = stats.maxHits !== undefined ? stats.maxHits : 'N/A';
+    const maxHitsDesc = maxHits !== 'N/A' ? '한 번에 맞춘 최대 개수' : '';
+    mainStats.appendChild(createStatCard(
+        '최대 적중 개수',
+        maxHits !== 'N/A' ? maxHits + '개' : 'N/A',
+        maxHitsDesc,
+        false,
+        '#f59e0b'
+    ));
+
+    // 총 테스트 회차
+    const totalRounds = stats.totalRounds || backtest.totalRounds || 0;
+    mainStats.appendChild(createStatCard(
+        '테스트 회차',
+        totalRounds + '회',
+        `총 ${totalRounds}회의 회차로 검증`,
+        false,
+        '#6366f1'
+    ));
+
+    container.appendChild(mainStats);
+
+    // 상세 지표 섹션
+    const detailSection = document.createElement('div');
+    detailSection.style.cssText = 'background: #f8fafc; padding: 16px; border-radius: 12px; margin-top: 16px;';
+    
+    const detailHeader = document.createElement('h3');
+    detailHeader.style.cssText = 'margin: 0 0 12px 0; font-size: 1rem; color: #475569;';
+    detailHeader.textContent = '📈 상세 성과 지표';
+    detailSection.appendChild(detailHeader);
+
+    const detailGrid = document.createElement('div');
+    detailGrid.style.cssText = 'display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px;';
+
+    const detailStats = [];
+
+    // 4개 이상 적중률
+    if (stats.hitRates && stats.hitRates[4] !== undefined) {
+        const hit4Rate = (stats.hitRates[4] * 100).toFixed(2);
+        const hit4Lift = stats.lifts && stats.lifts[4] ? stats.lifts[4].toFixed(1) : '';
+        detailStats.push({ label: '4개 이상 적중', value: `${hit4Rate}%`, desc: hit4Lift ? `리프트 ${hit4Lift}x` : '' });
     }
 
     // 평균 순위
     if (stats.averageRank !== undefined && stats.averageRank !== null) {
-        statCards.push({ label: '평균 순위', value: stats.averageRank.toFixed(1) });
+        detailStats.push({ label: '평균 예측 순위', value: stats.averageRank.toFixed(1) + '위', desc: '낮을수록 좋음 (1위가 최고)' });
     }
 
-    // MRR
-    if (stats.mrr !== undefined && stats.mrr !== null) {
-        statCards.push({ label: 'MRR', value: stats.mrr.toFixed(4) });
-    }
-
-    // Sharpe-like ratio
+    // 안정성 지수
     if (stats.sharpeLikeRatio !== undefined) {
-        statCards.push({ label: '안정성 지수', value: stats.sharpeLikeRatio.toFixed(3) });
+        detailStats.push({ label: '안정성 지수', value: stats.sharpeLikeRatio.toFixed(2), desc: '높을수록 일관적' });
     }
 
-    // Drawdown
+    // 최대 연속 실패
     if (stats.drawdown !== undefined) {
-        statCards.push({ label: '최대 Drawdown', value: `${stats.drawdown}회차` });
+        detailStats.push({ label: '최대 연속 실패', value: `${stats.drawdown}회차`, desc: '3개 미만 적중 연속 기간' });
     }
 
-    // 보너스 적중률 (있는 경우)
+    // 보너스 적중률
     if (stats.bonusHitRate !== undefined) {
-        statCards.push({ label: '보너스 적중률', value: `${(stats.bonusHitRate * 100).toFixed(1)}%` });
+        detailStats.push({ label: '보너스 적중률', value: `${(stats.bonusHitRate * 100).toFixed(1)}%`, desc: '' });
     }
 
-    // 총 회차
-    statCards.push({ label: '총 회차', value: stats.totalRounds || backtest.totalRounds || 0 });
+    // 백테스트 모드 및 분석 방법
+    detailStats.push({ label: '테스트 방식', value: isWalkForward ? 'Walk-Forward' : '표준', desc: isWalkForward ? '시계열 검증' : '일반 검증' });
+    detailStats.push({ label: '분석 방법', value: methodName, desc: '' });
 
-    statCards.forEach(stat => {
+    detailStats.forEach(stat => {
         const card = document.createElement('div');
-        card.className = 'stat-box';
-        if (stat.highlight) {
-            card.style.background = 'linear-gradient(135deg, #dbeafe, #bfdbfe)';
-            card.style.border = '2px solid #3b82f6';
-        }
-        card.innerHTML = `
-            <div class="stat-value">${stat.value}</div>
-            <div class="stat-label">${stat.label}</div>
+        card.style.cssText = `
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
         `;
-        container.appendChild(card);
+        
+        const valueDiv = document.createElement('div');
+        valueDiv.style.cssText = 'font-size: 1.1rem; font-weight: 600; color: #1e293b; margin-bottom: 4px;';
+        valueDiv.textContent = stat.value;
+        
+        const labelDiv = document.createElement('div');
+        labelDiv.style.cssText = 'font-size: 0.85rem; color: #64748b; margin-bottom: 2px;';
+        labelDiv.textContent = stat.label;
+        
+        if (stat.desc) {
+            const descDiv = document.createElement('div');
+            descDiv.style.cssText = 'font-size: 0.75rem; color: #94a3b8;';
+            descDiv.textContent = stat.desc;
+            card.appendChild(descDiv);
+        }
+        
+        card.appendChild(labelDiv);
+        card.appendChild(valueDiv);
+        detailGrid.appendChild(card);
     });
+
+    detailSection.appendChild(detailGrid);
+    container.appendChild(detailSection);
 }
 
 /**
@@ -1802,153 +2045,98 @@ function generateCombinations() {
 }
 
 /**
- * Display combinations with constraint information
+ * Display combinations with constraint information (compact version)
  */
 function displayCombinations(combinations) {
     const container = document.getElementById('combinations-results');
     container.innerHTML = '';
 
     if (!combinations || combinations.length === 0) {
-        container.innerHTML = '<p style="text-align: center; color: #64748b; padding: 20px;">조합을 생성할 수 없습니다.</p>';
+        container.innerHTML = '<p style="text-align: center; color: #64748b; padding: 12px; font-size: 0.875rem;">조합을 생성할 수 없습니다.</p>';
         return;
     }
 
-    // Create combination cards
+    // Create combination cards (compact)
     combinations.forEach((combo, idx) => {
         const card = document.createElement('div');
         card.className = 'combination-card';
         card.style.cssText = `
-            background: linear-gradient(135deg, #f8fafc, #f1f5f9);
-            border: 2px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 12px;
-            transition: all 0.3s ease;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 8px;
+            transition: all 0.2s ease;
         `;
 
-        // Header
+        // Compact header
         const header = document.createElement('div');
         header.style.cssText = `
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 12px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid #cbd5e1;
+            margin-bottom: 8px;
         `;
 
         const rank = document.createElement('div');
-        rank.style.cssText = 'font-weight: 700; color: #1e293b; font-size: 1.1rem;';
+        rank.style.cssText = 'font-weight: 600; color: #004EA2; font-size: 0.875rem;';
         rank.textContent = `#${idx + 1}`;
 
         const scoreInfo = document.createElement('div');
-        scoreInfo.style.cssText = 'display: flex; flex-direction: column; align-items: flex-end; gap: 4px;';
-        
-        const score = document.createElement('div');
-        score.style.cssText = 'color: #1e293b; font-size: 0.95rem; font-weight: 600;';
-        score.textContent = `점수: ${combo.score.toFixed(2)}`;
-        
-        const confidence = document.createElement('div');
-        confidence.style.cssText = 'color: #64748b; font-size: 0.85rem;';
-        const confPercent = (combo.confidence * 100).toFixed(0);
-        confidence.textContent = `신뢰도: ${confPercent}%`;
-        
-        scoreInfo.appendChild(score);
-        scoreInfo.appendChild(confidence);
+        scoreInfo.style.cssText = 'display: flex; gap: 8px; align-items: center; font-size: 0.75rem; color: #64748b;';
+        scoreInfo.innerHTML = `
+            <span>점수: <strong>${combo.score.toFixed(1)}</strong></span>
+            ${combo.confidence !== undefined ? `<span>신뢰: ${(combo.confidence * 100).toFixed(0)}%</span>` : ''}
+        `;
 
         header.appendChild(rank);
         header.appendChild(scoreInfo);
 
-        // Numbers
+        // Numbers (compact)
         const numbersDiv = document.createElement('div');
-        numbersDiv.style.cssText = 'display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;';
+        numbersDiv.style.cssText = 'display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px;';
 
         const sortedNumbers = [...combo.numbers].sort((a, b) => a - b);
 
         sortedNumbers.forEach(num => {
             const ball = document.createElement('div');
             ball.className = `lotto-ball ${getBallColorClass(num)}`;
+            ball.style.cssText = 'width: 36px; height: 36px; font-size: 0.875rem;';
             ball.textContent = num;
             numbersDiv.appendChild(ball);
         });
 
-        // Constraint Info (if available)
-        let constraintInfo = null;
-        if (combo.constraintScore !== undefined) {
-            constraintInfo = document.createElement('div');
-            constraintInfo.style.cssText = `
-                margin-bottom: 12px;
-                padding: 8px 12px;
-                background: ${combo.constraintScore >= 0.8 ? '#d1fae5' : combo.constraintScore >= 0.6 ? '#fef3c7' : '#fee2e2'};
-                border-radius: 6px;
-                font-size: 0.85rem;
-                color: ${combo.constraintScore >= 0.8 ? '#065f46' : combo.constraintScore >= 0.6 ? '#92400e' : '#991b1b'};
-            `;
-            const constraintPercent = (combo.constraintScore * 100).toFixed(0);
-            constraintInfo.textContent = `제약조건 충족도: ${constraintPercent}% (합계: ${sortedNumbers.reduce((a, b) => a + b, 0)})`;
-        }
-
-        // Action buttons
-        const actionsDiv = document.createElement('div');
-        actionsDiv.style.cssText = 'display: flex; gap: 8px;';
-        
+        // Action button (compact)
         const copyBtn = document.createElement('button');
         copyBtn.className = 'btn btn-primary';
-        copyBtn.style.cssText = 'flex: 1; padding: 8px 16px; font-size: 0.9rem;';
+        copyBtn.style.cssText = 'width: 100%; padding: 6px; font-size: 0.75rem; min-height: 32px;';
         copyBtn.textContent = '📋 복사';
         copyBtn.onclick = () => {
             const text = sortedNumbers.join(', ');
             navigator.clipboard.writeText(text).then(() => {
-                showMessage('번호가 클립보드에 복사되었습니다!', 'success');
+                showMessage('번호가 복사되었습니다!', 'success');
             });
         };
 
-        actionsDiv.appendChild(copyBtn);
-
         card.appendChild(header);
         card.appendChild(numbersDiv);
-        if (constraintInfo) {
-            card.appendChild(constraintInfo);
-        }
-        card.appendChild(actionsDiv);
+        card.appendChild(copyBtn);
 
-        // Hover effect (for non-touch devices)
+        // Hover effect
         if (window.matchMedia('(hover: hover)').matches) {
             card.addEventListener('mouseenter', () => {
-                card.style.borderColor = '#2563eb';
-                card.style.transform = 'translateY(-2px)';
-                card.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
+                card.style.borderColor = '#004EA2';
+                card.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
             });
 
             card.addEventListener('mouseleave', () => {
                 card.style.borderColor = '#e2e8f0';
-                card.style.transform = 'translateY(0)';
                 card.style.boxShadow = 'none';
             });
         }
 
         container.appendChild(card);
     });
-
-    // Summary
-    const summary = document.createElement('div');
-    summary.style.cssText = `
-        margin-top: 20px;
-        padding: 16px;
-        background: #dbeafe;
-        border-radius: 8px;
-        color: #1e40af;
-    `;
-    summary.innerHTML = `
-        <div style="font-weight: 600; margin-bottom: 8px;">💡 조합 생성 정보</div>
-        <div style="font-size: 0.9rem; line-height: 1.6;">
-            • 모든 조합은 구조적 제약조건을 만족합니다 (합계 범위, 홀짝 비율, 고저 비율 등)<br>
-            • 점수는 개별 번호의 예측 점수 기반으로 계산되었습니다<br>
-            • 신뢰도는 조합의 일관성과 평균 점수를 기반으로 합니다
-        </div>
-    `;
-
-    container.appendChild(summary);
 }
 
 /**
