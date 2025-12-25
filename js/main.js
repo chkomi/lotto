@@ -60,6 +60,9 @@ async function loadData() {
 
         // Update UI with current data info
         updateDataInfo();
+        
+        // 업데이트 필요 여부 확인
+        checkForUpdates();
 
         backtester = new Backtester(analyzer);
         ensembleAnalyzer = new EnsembleAnalyzer();
@@ -165,13 +168,335 @@ function updateDataInfo() {
     if (!analyzer || !analyzer.data || analyzer.data.length === 0) return;
 
     const lastRound = analyzer.data[analyzer.data.length - 1];
-    const nextRound = lastRound.round + 1;
+    
+    // 자동 회차 계산 기능 사용
+    let nextRoundInfo;
+    if (typeof getNextRoundInfo !== 'undefined') {
+        nextRoundInfo = getNextRoundInfo(analyzer);
+    }
+    
+    const nextRound = nextRoundInfo ? nextRoundInfo.nextRound : lastRound.round + 1;
     
     // Update any data info displays if they exist
     const dataInfoEl = document.getElementById('data-info');
     if (dataInfoEl) {
-        dataInfoEl.textContent = `최신 회차: ${lastRound.round}회 (${lastRound.date}) → 예측 대상: ${nextRound}회`;
+        if (nextRoundInfo) {
+            const drawInfo = nextRoundInfo.isDrawToday 
+                ? ` (오늘 추첨일!)`
+                : ` (${nextRoundInfo.daysUntilDraw}일 후)`;
+            dataInfoEl.textContent = `최신 회차: ${lastRound.round}회 (${lastRound.date}) → 예측 대상: ${nextRound}회${drawInfo}`;
+        } else {
+            dataInfoEl.textContent = `최신 회차: ${lastRound.round}회 (${lastRound.date}) → 예측 대상: ${nextRound}회`;
+        }
     }
+    
+    // 다음 회차 정보를 전역 변수로 저장 (다른 함수에서 사용)
+    window.nextRoundInfo = nextRoundInfo || { nextRound: nextRound };
+}
+
+/**
+ * 업데이트 필요 여부 확인 및 UI 표시
+ */
+function checkForUpdates() {
+    if (!analyzer || !analyzer.data || analyzer.data.length === 0) return;
+    
+    const lastRound = analyzer.data[analyzer.data.length - 1];
+    const lastRoundNum = lastRound.round;
+    const lastDateStr = lastRound.date;
+    
+    // 마지막 회차 날짜 파싱
+    const [year, month, day] = lastDateStr.split('.').map(Number);
+    const lastDate = new Date(year, month - 1, day, 21, 0, 0, 0);
+    const now = new Date();
+    
+    // 마지막 추첨일 이후 경과한 주 수 계산 (토요일 기준)
+    let expectedLatestRound = lastRoundNum;
+    let currentDate = new Date(lastDate);
+    
+    // 마지막 추첨일 다음 토요일부터 시작
+    currentDate.setDate(currentDate.getDate() + 7);
+    
+    // 현재 날짜 이전의 모든 토요일을 세어서 예상 최신 회차 계산
+    while (currentDate <= now) {
+        expectedLatestRound++;
+        currentDate.setDate(currentDate.getDate() + 7);
+    }
+    
+    const missingRounds = expectedLatestRound - lastRoundNum;
+    
+    const updateCard = document.getElementById('update-info-card');
+    const statusEl = document.getElementById('update-status');
+    
+    if (missingRounds > 0) {
+        // 누락된 회차가 있음
+        updateCard.style.display = 'block';
+        statusEl.innerHTML = `
+            <div style="color: var(--warning-color); font-weight: 600; margin-bottom: 8px;">
+                ⚠️ ${missingRounds}개 회차가 누락되었습니다.
+            </div>
+            <div style="font-size: 0.8rem; color: var(--text-secondary);">
+                현재: ${lastRoundNum}회 → 예상 최신: ${expectedLatestRound}회
+            </div>
+        `;
+    } else {
+        // 최신 데이터임
+        updateCard.style.display = 'block';
+        statusEl.innerHTML = `
+            <div style="color: var(--success-color); font-weight: 600; margin-bottom: 8px;">
+                ✅ 최신 데이터입니다.
+            </div>
+            <div style="font-size: 0.8rem; color: var(--text-secondary);">
+                현재: ${lastRoundNum}회 (최신)
+            </div>
+        `;
+    }
+}
+
+/**
+ * 최신 회차 확인 및 업데이트 (사용자가 버튼 클릭 시)
+ */
+function checkAndUpdateData() {
+    if (!analyzer || !analyzer.data || analyzer.data.length === 0) {
+        showMessage('데이터가 로드되지 않았습니다.', 'error');
+        return;
+    }
+    
+    const lastRound = analyzer.data[analyzer.data.length - 1];
+    const lastRoundNum = lastRound.round;
+    const lastDateStr = lastRound.date;
+    
+    // 마지막 회차 날짜 파싱
+    const [year, month, day] = lastDateStr.split('.').map(Number);
+    const lastDate = new Date(year, month - 1, day, 21, 0, 0, 0);
+    const now = new Date();
+    
+    // 마지막 추첨일 이후 경과한 주 수 계산 (토요일 기준)
+    let expectedLatestRound = lastRoundNum;
+    let currentDate = new Date(lastDate);
+    
+    // 마지막 추첨일 다음 토요일부터 시작
+    currentDate.setDate(currentDate.getDate() + 7);
+    
+    // 현재 날짜 이전의 모든 토요일을 세어서 예상 최신 회차 계산
+    while (currentDate <= now) {
+        expectedLatestRound++;
+        currentDate.setDate(currentDate.getDate() + 7);
+    }
+    
+    const missingRounds = expectedLatestRound - lastRoundNum;
+    
+    if (missingRounds <= 0) {
+        showMessage('이미 최신 데이터입니다!', 'success');
+        return;
+    }
+    
+    // 누락된 회차 입력 UI 표시
+    showMissingRoundsInput(lastRoundNum, expectedLatestRound, missingRounds);
+}
+
+/**
+ * 누락된 회차 입력 UI 표시
+ */
+function showMissingRoundsInput(startRound, endRound, count) {
+    // 모달 또는 입력 폼 생성
+    const modal = document.createElement('div');
+    modal.id = 'update-modal';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+        padding: 20px;
+    `;
+    
+    const modalContent = document.createElement('div');
+    modalContent.style.cssText = `
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        max-width: 600px;
+        width: 100%;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    `;
+    
+    let html = `
+        <h2 style="margin: 0 0 16px 0; color: var(--primary-color);">📥 누락된 회차 데이터 입력</h2>
+        <p style="margin: 0 0 20px 0; color: var(--text-secondary);">
+            ${count}개 회차(${startRound + 1}회 ~ ${endRound}회)의 데이터를 입력해주세요.
+        </p>
+        <div id="rounds-input-container" style="margin-bottom: 20px;">
+    `;
+    
+    // 각 회차별 입력 필드 생성
+    for (let round = startRound + 1; round <= endRound; round++) {
+        html += `
+            <div class="round-input-group" style="margin-bottom: 16px; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px;">
+                <div style="font-weight: 600; margin-bottom: 8px; color: var(--primary-color);">
+                    ${round}회차
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 6fr; gap: 8px; align-items: center; margin-bottom: 8px;">
+                    <label style="font-size: 0.875rem;">날짜:</label>
+                    <input type="text" class="round-date" data-round="${round}" 
+                           placeholder="YYYY.MM.DD" 
+                           style="padding: 8px; border: 1px solid var(--border-color); border-radius: 4px;">
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 6fr; gap: 8px; align-items: center;">
+                    <label style="font-size: 0.875rem;">번호:</label>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        ${[1,2,3,4,5,6].map(i => `
+                            <input type="number" class="round-number" data-round="${round}" data-index="${i}" 
+                                   min="1" max="45" placeholder="${i}" 
+                                   style="width: 50px; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; text-align: center;">
+                        `).join('')}
+                        <span style="align-self: center; color: var(--text-secondary);">보너스:</span>
+                        <input type="number" class="round-bonus" data-round="${round}" 
+                               min="1" max="45" placeholder="B" 
+                               style="width: 50px; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; text-align: center;">
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    html += `
+        </div>
+        <div style="display: flex; gap: 12px; justify-content: flex-end;">
+            <button class="btn btn-secondary" onclick="closeUpdateModal()" style="padding: 10px 20px;">
+                취소
+            </button>
+            <button class="btn btn-primary" onclick="generateUpdateCSV()" style="padding: 10px 20px;">
+                CSV 생성 및 다운로드
+            </button>
+        </div>
+    `;
+    
+    modalContent.innerHTML = html;
+    modal.appendChild(modalContent);
+    document.body.appendChild(modal);
+    
+    // 모달 외부 클릭 시 닫기
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            closeUpdateModal();
+        }
+    });
+}
+
+/**
+ * 업데이트 모달 닫기
+ */
+function closeUpdateModal() {
+    const modal = document.getElementById('update-modal');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+/**
+ * 업데이트된 CSV 생성 및 다운로드
+ */
+function generateUpdateCSV() {
+    const roundsData = [];
+    const inputGroups = document.querySelectorAll('.round-input-group');
+    
+    inputGroups.forEach(group => {
+        const roundInput = group.querySelector('.round-date');
+        const round = parseInt(roundInput.dataset.round);
+        const date = roundInput.value.trim();
+        
+        const numbers = [];
+        for (let i = 1; i <= 6; i++) {
+            const numInput = group.querySelector(`.round-number[data-index="${i}"]`);
+            const num = parseInt(numInput.value);
+            if (!num || num < 1 || num > 45) {
+                showMessage(`${round}회차의 ${i}번째 번호를 올바르게 입력해주세요. (1-45)`, 'error');
+                return;
+            }
+            numbers.push(num);
+        }
+        
+        const bonusInput = group.querySelector('.round-bonus');
+        const bonus = parseInt(bonusInput.value);
+        if (!bonus || bonus < 1 || bonus > 45) {
+            showMessage(`${round}회차의 보너스 번호를 올바르게 입력해주세요. (1-45)`, 'error');
+            return;
+        }
+        
+        if (!date || !/^\d{4}\.\d{2}\.\d{2}$/.test(date)) {
+            showMessage(`${round}회차의 날짜를 올바르게 입력해주세요. (YYYY.MM.DD 형식)`, 'error');
+            return;
+        }
+        
+        // 중복 번호 체크
+        const allNumbers = [...numbers, bonus];
+        if (new Set(allNumbers).size !== allNumbers.length) {
+            showMessage(`${round}회차에 중복된 번호가 있습니다.`, 'error');
+            return;
+        }
+        
+        // 번호 정렬 (보너스 제외)
+        numbers.sort((a, b) => a - b);
+        
+        roundsData.push({
+            round: round,
+            date: date,
+            numbers: numbers,
+            bonus: bonus
+        });
+    });
+    
+    // 기존 CSV 데이터 가져오기
+    if (!analyzer || !analyzer.data || analyzer.data.length === 0) {
+        showMessage('기존 데이터를 찾을 수 없습니다.', 'error');
+        return;
+    }
+    
+    // 기존 CSV 헤더와 데이터
+    const header = '회차,날짜,번호1,번호2,번호3,번호4,번호5,번호6,보너스\n';
+    let csvContent = header;
+    
+    // 기존 데이터 추가
+    analyzer.data.forEach(row => {
+        csvContent += `${row.round},${row.date},${row.numbers.join(',')},${row.bonus}\n`;
+    });
+    
+    // 새 데이터 추가 (회차 순으로 정렬)
+    roundsData.sort((a, b) => a.round - b.round);
+    roundsData.forEach(row => {
+        csvContent += `${row.round},${row.date},${row.numbers.join(',')},${row.bonus}\n`;
+    });
+    
+    // CSV 파일 다운로드
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    const latestRound = Math.max(...roundsData.map(r => r.round));
+    const filename = `lotto_1_${latestRound}.csv`;
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    showMessage(`${roundsData.length}개 회차 데이터가 포함된 CSV 파일이 다운로드되었습니다.`, 'success');
+    closeUpdateModal();
+    
+    // 파일 다운로드 후 페이지 새로고침 안내
+    setTimeout(() => {
+        if (confirm('새 CSV 파일을 data 폴더에 저장하셨나요? 저장하셨다면 페이지를 새로고침하여 업데이트된 데이터를 로드할 수 있습니다.')) {
+            location.reload();
+        }
+    }, 1000);
 }
 
 /**
@@ -433,6 +758,13 @@ function runNextRoundPrediction() {
 
     const lastRound = analyzer.data[analyzer.data.length - 1].round;
 
+    // 다음 회차 자동 계산
+    let nextRoundInfo;
+    if (typeof getNextRoundInfo !== 'undefined') {
+        nextRoundInfo = getNextRoundInfo(analyzer);
+    }
+    const nextRound = nextRoundInfo ? nextRoundInfo.nextRound : lastRound + 1;
+
     // 분석 시작 (랜덤포레스트 등 시간이 걸리는 경우를 위해)
     const isSlowMethod = method === 'randomForest' || method === 'association' || method === 'ensemble';
     if (isSlowMethod) {
@@ -458,13 +790,21 @@ function runNextRoundPrediction() {
         return;
     }
 
-    const nextRound = lastRound + 1;
     const methodName = getMethodName(method);
     const nextRoundInfoEl = document.getElementById('next-round-info');
     if (nextRoundInfoEl) {
+        let drawDateInfo = '';
+        if (nextRoundInfo) {
+            if (nextRoundInfo.isDrawToday) {
+                drawDateInfo = '<br><span style="font-size: 0.8rem; color: #dc3545; font-weight: 600;">🎯 오늘 추첨일입니다!</span>';
+            } else {
+                drawDateInfo = `<br><span style="font-size: 0.8rem; color: #64748b;">📅 추첨일: ${nextRoundInfo.nextDrawDate} (${nextRoundInfo.daysUntilDraw}일 후)</span>`;
+            }
+        }
         nextRoundInfoEl.innerHTML = `
             <span style="font-size: 1.1rem; font-weight: 600; color: #1e40af;">${nextRound}회차 예측</span><br>
             <span style="font-size: 0.9rem; color: #64748b;">${methodName} | 최근 ${rounds}회차 데이터 사용</span>
+            ${drawDateInfo}
         `;
     }
     updateDataInfo();
@@ -768,11 +1108,11 @@ function createPredictionItem(pred, displayRank, isTop6) {
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 4px;
-        padding: 6px 4px;
+        gap: 3px;
+        padding: 4px 2px;
         background: ${isTop6 ? '#E6F2FF' : '#ffffff'};
         border: ${isTop6 ? '2px solid #004EA2' : '1px solid #e2e8f0'};
-        border-radius: 6px;
+        border-radius: 4px;
         transition: all 0.2s ease;
     `;
 
@@ -780,16 +1120,16 @@ function createPredictionItem(pred, displayRank, isTop6) {
     ball.className = `prediction-number lotto-ball ${getBallColorClass(pred.number)}`;
     ball.textContent = pred.number;
     ball.style.cssText = `
-        font-size: 0.875rem;
+        font-size: 0.75rem;
         font-weight: 700;
-        width: 36px;
-        height: 36px;
-        line-height: 36px;
+        width: 32px;
+        height: 32px;
+        line-height: 32px;
     `;
 
     const rank = document.createElement('div');
     rank.style.cssText = `
-        font-size: 0.65rem;
+        font-size: 0.6rem;
         font-weight: 600;
         color: ${isTop6 ? '#004EA2' : '#64748b'};
     `;

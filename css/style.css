@@ -82,6 +82,26 @@ body {
     max-width: 1600px;
     margin: 0 auto;
     padding: var(--spacing-md);
+    width: 100%;
+    box-sizing: border-box;
+}
+
+@media (max-width: 1600px) {
+    .container {
+        padding: var(--spacing-md);
+    }
+}
+
+@media (max-width: 1024px) {
+    .container {
+        padding: var(--spacing-sm) var(--spacing-md);
+    }
+}
+
+@media (max-width: 640px) {
+    .container {
+        padding: var(--spacing-sm);
+    }
 }
 
 /* Header - KRDS 스타일: 깔끔하고 전문적인 헤더 */
@@ -357,14 +377,61 @@ header p {
 
 .prediction-grid-compact {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(10, 1fr);
     gap: 6px;
     margin: var(--spacing-sm) 0;
+    width: 100%;
+}
+
+@media (max-width: 1600px) {
+    .prediction-grid-compact {
+        grid-template-columns: repeat(10, 1fr);
+        gap: 5px;
+    }
 }
 
 @media (max-width: 1400px) {
     .prediction-grid-compact {
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(10, 1fr);
+    }
+}
+
+@media (max-width: 1200px) {
+    .prediction-grid-compact {
+        grid-template-columns: repeat(8, 1fr);
+    }
+}
+
+@media (max-width: 1024px) {
+    .prediction-grid-compact {
+        grid-template-columns: repeat(7, 1fr);
+    }
+}
+
+@media (max-width: 900px) {
+    .prediction-grid-compact {
+        grid-template-columns: repeat(6, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .prediction-grid-compact {
+        grid-template-columns: repeat(5, 1fr);
+        gap: 5px;
+    }
+}
+
+@media (max-width: 640px) {
+    .prediction-grid-compact {
+        grid-template-columns: repeat(5, 1fr);
+        gap: 4px;
+    }
+}
+
+@media (max-width: 480px) {
+    .prediction-grid-compact {
+        grid-template-columns: repeat(5, 1fr);
+        gap: 4px;
     }
 }
 
@@ -443,12 +510,44 @@ header p {
     border-collapse: collapse;
     margin-top: var(--spacing-lg);
     font-size: var(--font-size-sm);
+    min-width: 600px; /* 최소 너비 보장 */
+}
+
+@media (max-width: 768px) {
+    .backtest-table {
+        font-size: var(--font-size-xs);
+        min-width: 500px;
+    }
+}
+
+@media (max-width: 480px) {
+    .backtest-table {
+        min-width: 400px;
+    }
 }
 
 .table-wrapper {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     margin: var(--spacing-lg) 0;
+    width: 100%;
+    box-sizing: border-box;
+    scrollbar-width: thin;
+    scrollbar-color: var(--krds-gray-300) transparent;
+}
+
+.table-wrapper::-webkit-scrollbar {
+    height: 8px;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb {
+    background: var(--krds-gray-300);
+    border-radius: 4px;
+}
+
+.table-wrapper::-webkit-scrollbar-track {
+    background: var(--krds-gray-100);
+    border-radius: 4px;
 }
 
 .backtest-table th,
@@ -478,10 +577,39 @@ header p {
 
 .chart-container-compact {
     position: relative;
-    height: 400px;
-    margin: var(--spacing-sm) 0;
-    flex: 1;
-    min-height: 300px;
+    width: 100%;
+    height: 100%;
+    min-height: 250px;
+    max-height: 400px;
+    box-sizing: border-box;
+}
+
+@media (max-width: 1400px) {
+    .chart-container-compact {
+        min-height: 300px;
+        max-height: 450px;
+    }
+}
+
+@media (max-width: 1024px) {
+    .chart-container-compact {
+        min-height: 300px;
+        max-height: 500px;
+    }
+}
+
+@media (max-width: 768px) {
+    .chart-container-compact {
+        min-height: 250px;
+        max-height: 400px;
+    }
+}
+
+@media (max-width: 480px) {
+    .chart-container-compact {
+        min-height: 200px;
+        max-height: 350px;
+    }
 }
 
 /* Weights Display */
@@ -580,10 +708,24 @@ header p {
     align-items: end;
 }
 
+@media (max-width: 1200px) {
+    .controls-compact {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 640px) {
+    .controls-compact {
+        grid-template-columns: 1fr;
+        gap: var(--spacing-sm);
+    }
+}
+
 .control-group-compact {
     display: flex;
     flex-direction: column;
     gap: 4px;
+    min-width: 0; /* 그리드 오버플로우 방지 */
 }
 
 .control-group-compact label {
@@ -745,7 +887,10 @@ header p {
 .combinations-compact {
     flex: 1;
     overflow-y: auto;
+    overflow-x: hidden;
     min-height: 0;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .combination-row {
@@ -755,6 +900,9 @@ header p {
     padding: 10px 8px;
     border-radius: 4px;
     transition: background-color 0.2s ease;
+    width: 100%;
+    box-sizing: border-box;
+    min-width: 0;
 }
 
 .combination-row:hover {
@@ -767,10 +915,37 @@ header p {
     font-size: 0.875rem;
     cursor: pointer;
     transition: transform 0.2s ease;
+    flex-shrink: 0;
 }
 
 .combinations-compact .lotto-ball:hover {
     transform: scale(1.1);
+}
+
+@media (max-width: 768px) {
+    .combination-row {
+        gap: 8px;
+        padding: 8px 6px;
+    }
+    
+    .combinations-compact .lotto-ball {
+        width: 28px;
+        height: 28px;
+        font-size: 0.75rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .combination-row {
+        gap: 6px;
+        padding: 6px 4px;
+    }
+    
+    .combinations-compact .lotto-ball {
+        width: 26px;
+        height: 26px;
+        font-size: 0.7rem;
+    }
 }
 
 /* Tooltip */
@@ -978,14 +1153,20 @@ small {
         gap: 6px;
     }
 
-    .prediction-number {
-        width: 40px;
-        height: 40px;
-        font-size: var(--font-size-base);
+    .prediction-grid-compact .prediction-number {
+        width: 28px;
+        height: 28px;
+        font-size: 0.7rem;
+        line-height: 28px;
     }
 
-    .prediction-item {
-        padding: 6px;
+    .prediction-grid-compact .prediction-item {
+        padding: 4px 2px;
+        gap: 2px;
+    }
+
+    .prediction-grid-compact .prediction-item > div:last-child {
+        font-size: 0.55rem;
     }
 
     .prediction-score {

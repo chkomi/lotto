@@ -31,6 +31,22 @@
 
         <!-- Tab: Prediction -->
         <div id="tab-prediction" class="tab-content active">
+            <!-- 데이터 업데이트 안내 -->
+            <div class="card card-compact" id="update-info-card" style="display: none; margin-bottom: var(--spacing-md); background: linear-gradient(135deg, #eff6ff, #ffffff); border: 2px solid #3b82f6;">
+                <div class="card-header-compact">
+                    <h2 class="card-title-compact">🔄 데이터 업데이트</h2>
+                </div>
+                <div style="padding: 12px;">
+                    <div id="update-status" style="margin-bottom: 12px; font-size: 0.875rem;"></div>
+                    <button class="btn btn-primary" onclick="checkAndUpdateData()" style="width: 100%;">
+                        📥 최신 회차 확인 및 업데이트
+                    </button>
+                    <small style="display: block; margin-top: 8px; color: var(--text-secondary); font-size: 0.75rem;">
+                        💡 동행복권(https://dhlottery.co.kr)에서 최신 당첨번호를 확인한 후 입력해주세요.
+                    </small>
+                </div>
+            </div>
+
             <!-- Controls - 컴팩트하게 -->
             <div class="card card-compact">
                 <div class="card-header-compact">
@@ -71,7 +87,7 @@
                 <div class="card card-compact card-with-scroll">
                     <div class="card-header-compact">
                         <h2 class="card-title-compact">🎯 예측 번호</h2>
-                        <div id="next-round-info" style="font-size: 0.7rem; color: #64748b;"></div>
+                        <div id="next-round-info" style="font-size: 0.7rem; color: #64748b; text-align: right;"></div>
                     </div>
                     <div id="prediction-results" class="prediction-grid-compact">
                         <!-- Predictions will be inserted here -->
@@ -423,6 +439,8 @@
     <script src="js/backtest/walkforward.js"></script>
     <script src="js/backtest/optimizer.js"></script>
     <script src="js/backtest.js"></script>
+    <!-- 회차 자동 계산 모듈 -->
+    <script src="js/round-calculator.js"></script>
     <script src="js/main.js"></script>
 </body>
 </html>
