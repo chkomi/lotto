@@ -146,6 +146,36 @@
                         <input type="number" id="backtest-topn" value="10" min="6" max="20">
                     </div>
                     <div class="control-group">
+                        <label for="backtest-mode">백테스트 모드</label>
+                        <select id="backtest-mode" title="백테스트 방식을 선택하세요." onchange="toggleBacktestMode()">
+                            <option value="standard">표준 백테스트</option>
+                            <option value="walkforward">Walk-Forward 백테스트</option>
+                        </select>
+                        <small style="color: #64748b; font-size: 0.8rem;">
+                            Walk-Forward는 시계열 무결성을 보장합니다.
+                        </small>
+                    </div>
+                    <div class="control-group" id="walkforward-config" style="display: none;">
+                        <label>Walk-Forward 설정</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <div>
+                                <label for="wf-train-size" style="font-size: 0.9rem;">학습 기간</label>
+                                <input type="number" id="wf-train-size" value="100" min="50" max="500">
+                            </div>
+                            <div>
+                                <label for="wf-test-size" style="font-size: 0.9rem;">테스트 기간</label>
+                                <input type="number" id="wf-test-size" value="50" min="10" max="200">
+                            </div>
+                        </div>
+                        <div style="margin-top: 8px;">
+                            <label for="wf-window-type" style="font-size: 0.9rem;">윈도우 타입</label>
+                            <select id="wf-window-type">
+                                <option value="rolling">Rolling Window (이동 윈도우)</option>
+                                <option value="anchored">Anchored Window (시작점 고정)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="control-group">
                         <label for="backtest-method">분석 방법</label>
                         <select id="backtest-method" title="백테스트에 사용할 분석 방법을 선택하세요.">
                             <option value="entropy">엔트로피 가중치법 (Entropy)</option>
@@ -213,6 +243,57 @@
                             <!-- Results will be inserted here -->
                         </tbody>
                     </table>
+                </div>
+            </div>
+
+            <!-- Strategy Optimization -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">⚙️ 전략 파라미터 최적화</h2>
+                </div>
+                <div class="controls">
+                    <div class="control-group">
+                        <label for="opt-metric">최적화 목표 지표</label>
+                        <select id="opt-metric">
+                            <option value="hit_rate_3">3개+ 적중률</option>
+                            <option value="hit_rate_4">4개+ 적중률</option>
+                            <option value="average_hits">평균 적중 개수</option>
+                            <option value="lift_3">무작위 대비 리프트 (3개+)</option>
+                            <option value="sharpe_ratio">안정성 지수 (Sharpe-like)</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label>분석 윈도우 크기 (회차)</label>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <label><input type="checkbox" name="opt-window" value="30"> 30</label>
+                            <label><input type="checkbox" name="opt-window" value="50" checked> 50</label>
+                            <label><input type="checkbox" name="opt-window" value="100" checked> 100</label>
+                            <label><input type="checkbox" name="opt-window" value="150"> 150</label>
+                            <label><input type="checkbox" name="opt-window" value="200"> 200</label>
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <label for="opt-backtest-range">최적화용 백테스트 범위</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <div>
+                                <label style="font-size: 0.9rem;">시작 회차</label>
+                                <input type="number" id="opt-backtest-start" value="1000" min="100">
+                            </div>
+                            <div>
+                                <label style="font-size: 0.9rem;">종료 회차</label>
+                                <input type="number" id="opt-backtest-end" value="1150" min="100">
+                            </div>
+                        </div>
+                    </div>
+                    <button class="btn btn-success" onclick="runOptimization()">
+                        🔍 Grid Search 실행
+                    </button>
+                    <small style="color: #64748b; font-size: 0.8rem; display: block; margin-top: 8px;">
+                        ⚠️ 최적화는 시간이 걸릴 수 있습니다. 선택한 윈도우 크기 조합 수에 따라 다릅니다.
+                    </small>
+                </div>
+                <div id="optimization-results" style="margin-top: 20px;">
+                    <!-- Optimization results will be inserted here -->
                 </div>
             </div>
         </div>
@@ -326,6 +407,14 @@
     <script src="js/association-rules.js"></script>
     <script src="js/math-constants.js"></script>  <!-- 수학적 상수 분석 (e, π, φ) -->
     <script src="js/ensemble.js"></script>
+    <!-- 조합 생성 모듈 -->
+    <script src="js/combination/constraints.js"></script>
+    <script src="js/combination/scorer.js"></script>
+    <script src="js/combination/generator.js"></script>
+    <!-- Walk-Forward 백테스팅 모듈 -->
+    <script src="js/backtest/metrics.js"></script>
+    <script src="js/backtest/walkforward.js"></script>
+    <script src="js/backtest/optimizer.js"></script>
     <script src="js/backtest.js"></script>
     <script src="js/main.js"></script>
 </body>

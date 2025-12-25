@@ -831,14 +831,41 @@ function getSelectedBacktestMethod() {
 }
 
 /**
- * Run backtest
+ * Toggle backtest mode UI
+ */
+function toggleBacktestMode() {
+    const mode = document.getElementById('backtest-mode').value;
+    const wfConfig = document.getElementById('walkforward-config');
+    
+    if (mode === 'walkforward') {
+        wfConfig.style.display = 'block';
+    } else {
+        wfConfig.style.display = 'none';
+    }
+}
+
+/**
+ * Run backtest (standard or walk-forward)
  */
 function runBacktest() {
-    if (!backtester) {
+    if (!backtester || !analyzer) {
         alert('데이터가 로드되지 않았습니다.');
         return;
     }
 
+    const mode = document.getElementById('backtest-mode').value;
+    
+    if (mode === 'walkforward') {
+        runWalkForwardBacktest();
+    } else {
+        runStandardBacktest();
+    }
+}
+
+/**
+ * Run standard backtest
+ */
+function runStandardBacktest() {
     const startRound = parseInt(document.getElementById('backtest-start').value);
     const endRound = parseInt(document.getElementById('backtest-end').value);
     const topN = parseInt(document.getElementById('backtest-topn').value);
@@ -850,7 +877,7 @@ function runBacktest() {
         return;
     }
 
-    console.log(`Running backtest: ${startRound} - ${endRound} with method: ${method}`);
+    console.log(`Running standard backtest: ${startRound} - ${endRound} with method: ${method}`);
 
     // 진행율 표시 시작
     const totalRounds = endRound - startRound + 1;
@@ -899,6 +926,124 @@ function runBacktest() {
 }
 
 /**
+ * Run Walk-Forward backtest
+ */
+function runWalkForwardBacktest() {
+    if (typeof WalkForwardBacktester === 'undefined') {
+        alert('Walk-Forward 백테스터 모듈이 로드되지 않았습니다. 페이지를 새로고침해주세요.');
+        return;
+    }
+
+    const method = getSelectedBacktestMethod();
+    const rounds = analyzer.params.recentWindow || 50;
+    const trainSize = parseInt(document.getElementById('wf-train-size').value) || 100;
+    const testSize = parseInt(document.getElementById('wf-test-size').value) || 50;
+    const windowType = document.getElementById('wf-window-type').value || 'rolling';
+
+    console.log(`Running Walk-Forward backtest with method: ${method}, trainSize: ${trainSize}, testSize: ${testSize}`);
+
+    // Walk-Forward 설정
+    const config = {
+        trainSize: trainSize,
+        testSize: testSize,
+        stepSize: 1,
+        windowType: windowType,
+        minTrainSize: 50
+    };
+
+    // Walk-Forward 백테스터 생성
+    const wfBacktester = new WalkForwardBacktester(analyzer.data, config);
+
+    // 진행율 표시 시작
+    showProgress(true, {
+        message: `Walk-Forward 백테스팅 진행 중...`,
+        progress: 0,
+        current: 0,
+        total: 100,
+        detail: '초기화 중...'
+    });
+
+    // 전략 함수 생성
+    const strategyFunction = (trainData, testRounds) => {
+        // trainData의 마지막 회차까지로 분석
+        const lastTrainRound = trainData[trainData.length - 1].round;
+        const analysis = runAnalysisByMethod(method, lastTrainRound, rounds);
+        
+        // 상위 10개 번호 반환
+        return analysis.predictions.slice(0, 10).map(p => p.number);
+    };
+
+    // 진행율 콜백
+    const progressCallback = (progress, current, total, detail) => {
+        updateProgress({
+            message: `Walk-Forward 백테스팅 진행 중...`,
+            progress: progress,
+            current: current,
+            total: total,
+            detail: detail
+        });
+    };
+
+    try {
+        const wfResult = wfBacktester.run(strategyFunction, progressCallback);
+
+        // 결과를 기존 백테스트 형식으로 변환
+        const allResults = [];
+        wfResult.foldResults.forEach(fold => {
+            if (fold.results && fold.results.length > 0) {
+                fold.results.forEach(result => {
+                    allResults.push({
+                        round: result.round,
+                        predicted: result.predicted,
+                        actual: result.actual,
+                        bonus: result.bonus,
+                        hits: result.hits,
+                        bonusHit: result.predicted.includes(result.bonus),
+                        actualRanks: result.actualRanks,
+                        avgRank: result.avgRank,
+                        top6Accuracy: result.hits / 6,
+                        method: method
+                    });
+                });
+            }
+        });
+
+        // metrics.js를 사용한 상세 지표 계산
+        let detailedMetrics = null;
+        if (typeof calculateMetrics !== 'undefined') {
+            detailedMetrics = calculateMetrics(allResults);
+        }
+
+        // 기존 백테스트 결과 형식으로 변환
+        currentBacktest = {
+            results: allResults,
+            statistics: detailedMetrics || wfResult.aggregateMetrics,
+            topN: 10,
+            totalRounds: allResults.length,
+            method: method,
+            wfResult: wfResult,
+            isWalkForward: true
+        };
+
+    } catch (error) {
+        showProgress(false);
+        showMessage(`Walk-Forward 백테스트 중 오류 발생: ${error.message}`, 'error');
+        console.error('Walk-Forward backtest error:', error);
+        return;
+    }
+
+    // 진행율 표시 종료
+    showProgress(false);
+
+    displayBacktestStats(currentBacktest);
+    displayBacktestChart(currentBacktest);
+    displayHitDistribution(currentBacktest);
+    displayBacktestTable(currentBacktest);
+    
+    showMessage(`Walk-Forward 백테스트가 완료되었습니다. (${wfResult.totalFolds}개 폴드)`, 'success');
+}
+
+/**
  * Display backtest statistics
  */
 function displayBacktestStats(backtest) {
@@ -907,16 +1052,68 @@ function displayBacktestStats(backtest) {
 
     const stats = backtest.statistics;
     const methodName = getMethodName(backtest.method) || backtest.method || '알 수 없음';
+    const isWalkForward = backtest.isWalkForward || false;
 
     const statCards = [
+        { label: '백테스트 모드', value: isWalkForward ? 'Walk-Forward' : '표준', highlight: true },
         { label: '분석 방법', value: methodName, highlight: true },
-        { label: '평균 적중 개수', value: stats.averageHits.toFixed(2) },
-        { label: 'Top 6 정확도', value: `${(stats.top6Accuracy * 100).toFixed(1)}%` },
-        { label: 'Top 10 정확도', value: `${(stats.top10Accuracy * 100).toFixed(1)}%` },
-        { label: '평균 순위', value: stats.averageRank.toFixed(1) },
-        { label: '3개 이상 적중률', value: `${(stats.hit3PlusRate * 100).toFixed(1)}%` },
-        { label: '보너스 적중률', value: `${(stats.bonusHitRate * 100).toFixed(1)}%` }
+        { label: '평균 적중 개수', value: stats.averageHits ? stats.averageHits.toFixed(2) : 'N/A' },
+        { label: '최대 적중 개수', value: stats.maxHits !== undefined ? stats.maxHits : 'N/A' }
     ];
+
+    // Walk-Forward 또는 metrics.js 결과인 경우 추가 지표 표시
+    if (stats.hitRates) {
+        // k개 이상 적중률 추가
+        if (stats.hitRates[3] !== undefined) {
+            const hit3Rate = (stats.hitRates[3] * 100).toFixed(1);
+            const lift3 = stats.lifts && stats.lifts[3] ? ` (${stats.lifts[3].toFixed(2)}x)` : '';
+            statCards.push({ label: '3개+ 적중률', value: `${hit3Rate}%${lift3}` });
+        }
+        if (stats.hitRates[4] !== undefined) {
+            const hit4Rate = (stats.hitRates[4] * 100).toFixed(2);
+            const lift4 = stats.lifts && stats.lifts[4] ? ` (${stats.lifts[4].toFixed(2)}x)` : '';
+            statCards.push({ label: '4개+ 적중률', value: `${hit4Rate}%${lift4}` });
+        }
+    } else {
+        // 기존 통계 (호환성)
+        if (stats.top6Accuracy !== undefined) {
+            statCards.push({ label: 'Top 6 정확도', value: `${(stats.top6Accuracy * 100).toFixed(1)}%` });
+        }
+        if (stats.top10Accuracy !== undefined) {
+            statCards.push({ label: 'Top 10 정확도', value: `${(stats.top10Accuracy * 100).toFixed(1)}%` });
+        }
+        if (stats.hit3PlusRate !== undefined) {
+            statCards.push({ label: '3개 이상 적중률', value: `${(stats.hit3PlusRate * 100).toFixed(1)}%` });
+        }
+    }
+
+    // 평균 순위
+    if (stats.averageRank !== undefined && stats.averageRank !== null) {
+        statCards.push({ label: '평균 순위', value: stats.averageRank.toFixed(1) });
+    }
+
+    // MRR
+    if (stats.mrr !== undefined && stats.mrr !== null) {
+        statCards.push({ label: 'MRR', value: stats.mrr.toFixed(4) });
+    }
+
+    // Sharpe-like ratio
+    if (stats.sharpeLikeRatio !== undefined) {
+        statCards.push({ label: '안정성 지수', value: stats.sharpeLikeRatio.toFixed(3) });
+    }
+
+    // Drawdown
+    if (stats.drawdown !== undefined) {
+        statCards.push({ label: '최대 Drawdown', value: `${stats.drawdown}회차` });
+    }
+
+    // 보너스 적중률 (있는 경우)
+    if (stats.bonusHitRate !== undefined) {
+        statCards.push({ label: '보너스 적중률', value: `${(stats.bonusHitRate * 100).toFixed(1)}%` });
+    }
+
+    // 총 회차
+    statCards.push({ label: '총 회차', value: stats.totalRounds || backtest.totalRounds || 0 });
 
     statCards.forEach(stat => {
         const card = document.createElement('div');
@@ -1088,6 +1285,222 @@ function displayBacktestTable(backtest) {
 
         tbody.appendChild(row);
     });
+}
+
+/**
+ * Run strategy optimization
+ */
+function runOptimization() {
+    if (typeof StrategyOptimizer === 'undefined') {
+        alert('최적화 모듈이 로드되지 않았습니다. 페이지를 새로고침해주세요.');
+        return;
+    }
+
+    if (!analyzer || !backtester) {
+        alert('데이터가 로드되지 않았습니다.');
+        return;
+    }
+
+    // 설정 읽기
+    const metric = document.getElementById('opt-metric').value;
+    const startRound = parseInt(document.getElementById('opt-backtest-start').value);
+    const endRound = parseInt(document.getElementById('opt-backtest-end').value);
+    const method = getSelectedBacktestMethod();
+
+    // 선택된 윈도우 크기
+    const windowCheckboxes = document.querySelectorAll('input[name="opt-window"]:checked');
+    if (windowCheckboxes.length === 0) {
+        alert('최소 하나의 윈도우 크기를 선택해주세요.');
+        return;
+    }
+    const windowSizes = Array.from(windowCheckboxes).map(cb => parseInt(cb.value));
+
+    // 파라미터 그리드 생성
+    const paramGrid = {
+        recentWindow: windowSizes
+    };
+
+    console.log(`최적화 시작: 지표=${metric}, 윈도우=${windowSizes.join(',')}, 범위=${startRound}-${endRound}`);
+
+    // 진행율 표시
+    showProgress(true, {
+        message: '파라미터 최적화 진행 중...',
+        progress: 0,
+        detail: '초기화 중...'
+    });
+
+    // 백테스트 함수 생성
+    const backtestFunction = (params) => {
+        const rounds = params.recentWindow;
+        
+        // 분석 함수
+        const analysisFunction = (upToRound) => {
+            return runAnalysisByMethod(method, upToRound, rounds);
+        };
+
+        // 백테스트 실행
+        const result = backtester.run(startRound, endRound, 10, method, analysisFunction, null);
+        
+        // metrics.js로 상세 지표 계산
+        if (typeof calculateMetrics !== 'undefined' && result.results) {
+            const detailedMetrics = calculateMetrics(result.results);
+            result.statistics = { ...result.statistics, ...detailedMetrics };
+        }
+        
+        return result;
+    };
+
+    // 최적화 실행
+    const optimizer = new StrategyOptimizer(backtestFunction, paramGrid);
+
+    const progressCallback = (progress, current, total, detail) => {
+        updateProgress({
+            message: '파라미터 최적화 진행 중...',
+            progress: progress,
+            current: current,
+            total: total,
+            detail: detail
+        });
+    };
+
+    try {
+        const optimizationResult = optimizer.optimize(
+            { metric: metric, verbose: false },
+            progressCallback
+        );
+
+        showProgress(false);
+
+        // 결과 표시
+        displayOptimizationResults(optimizationResult);
+
+        showMessage(`최적화가 완료되었습니다! 최적 윈도우: ${optimizationResult.bestParams.recentWindow}회차`, 'success');
+
+    } catch (error) {
+        showProgress(false);
+        showMessage(`최적화 중 오류 발생: ${error.message}`, 'error');
+        console.error('Optimization error:', error);
+    }
+}
+
+/**
+ * Display optimization results
+ */
+function displayOptimizationResults(result) {
+    const container = document.getElementById('optimization-results');
+    container.innerHTML = '';
+
+    if (!result || !result.bestParams) {
+        container.innerHTML = '<p style="color: #ef4444;">최적화 결과가 없습니다.</p>';
+        return;
+    }
+
+    // 최적 파라미터 카드
+    const bestCard = document.createElement('div');
+    bestCard.style.cssText = `
+        background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+        border: 2px solid #3b82f6;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 20px;
+    `;
+    bestCard.innerHTML = `
+        <h3 style="margin: 0 0 12px 0; color: #1e40af;">🏆 최적 파라미터</h3>
+        <div style="font-size: 1.1rem; margin-bottom: 8px;">
+            <strong>분석 윈도우:</strong> ${result.bestParams.recentWindow}회차
+        </div>
+        <div style="font-size: 1.1rem; margin-bottom: 8px;">
+            <strong>최적 점수 (${result.metric}):</strong> ${result.bestScore.toFixed(4)}
+        </div>
+        <div style="font-size: 0.9rem; color: #64748b;">
+            총 ${result.totalCombinations}개 조합 탐색 완료
+        </div>
+    `;
+    container.appendChild(bestCard);
+
+    // 상위 5개 결과 테이블
+    const tableCard = document.createElement('div');
+    tableCard.style.cssText = `
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 20px;
+    `;
+    tableCard.innerHTML = `
+        <h3 style="margin: 0 0 16px 0;">상위 5개 결과</h3>
+        <div class="table-wrapper">
+            <table class="backtest-table">
+                <thead>
+                    <tr>
+                        <th>순위</th>
+                        <th>윈도우 크기</th>
+                        <th>${result.metric}</th>
+                        <th>3개+ 적중률</th>
+                        <th>평균 적중</th>
+                        <th>리프트 (3개+)</th>
+                    </tr>
+                </thead>
+                <tbody id="opt-results-tbody">
+                </tbody>
+            </table>
+        </div>
+    `;
+    container.appendChild(tableCard);
+
+    const tbody = document.getElementById('opt-results-tbody');
+    const top5 = result.allResults.slice(0, 5);
+    top5.forEach((item, idx) => {
+        if (item.error) return;
+        
+        const metrics = item.metrics || {};
+        const row = document.createElement('tr');
+        row.style.cssText = idx === 0 ? 'background: #f0f9ff;' : '';
+        row.innerHTML = `
+            <td>${idx + 1}</td>
+            <td>${item.params.recentWindow}회차</td>
+            <td><strong>${item.score.toFixed(4)}</strong></td>
+            <td>${metrics.hit_rate_3 ? (metrics.hit_rate_3 * 100).toFixed(2) + '%' : 'N/A'}</td>
+            <td>${metrics.average_hits ? metrics.average_hits.toFixed(2) : 'N/A'}</td>
+            <td>${metrics.lift_3 ? metrics.lift_3.toFixed(2) + 'x' : 'N/A'}</td>
+        `;
+        tbody.appendChild(row);
+    });
+
+    // 파라미터 민감도 분석
+    if (result.paramSensitivity && Object.keys(result.paramSensitivity).length > 0) {
+        const sensitivityCard = document.createElement('div');
+        sensitivityCard.style.cssText = `
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+        `;
+        
+        let sensitivityHTML = '<h3 style="margin: 0 0 16px 0;">📊 파라미터 민감도 분석</h3>';
+        
+        Object.keys(result.paramSensitivity).forEach(paramName => {
+            const sens = result.paramSensitivity[paramName];
+            sensitivityHTML += `
+                <div style="margin-bottom: 16px; padding: 12px; background: #f8fafc; border-radius: 8px;">
+                    <strong>${paramName === 'recentWindow' ? '분석 윈도우 크기' : paramName}</strong>
+                    <div style="margin-top: 8px; font-size: 0.9rem;">
+                        최적값: <strong>${sens.bestValue}</strong> (점수: ${sens.valueScores[sens.bestValue].mean.toFixed(4)})<br>
+                        범위: ${sens.range.toFixed(4)} (상대 범위: ${(sens.relativeRange * 100).toFixed(1)}%)
+                    </div>
+                    <div style="margin-top: 8px;">
+                        ${Object.keys(sens.valueScores).map(value => {
+                            const vs = sens.valueScores[value];
+                            return `${value}: ${vs.mean.toFixed(4)} (σ=${vs.std.toFixed(4)}, n=${vs.count})`;
+                        }).join(', ')}
+                    </div>
+                </div>
+            `;
+        });
+        
+        sensitivityCard.innerHTML = sensitivityHTML;
+        container.appendChild(sensitivityCard);
+    }
 }
 
 /**
@@ -1310,7 +1723,7 @@ function getBallColor(num) {
 }
 
 /**
- * Generate combinations from predicted numbers
+ * Generate combinations from predicted numbers using the new combination engine
  */
 function generateCombinations() {
     if (!currentAnalysis) {
@@ -1318,60 +1731,78 @@ function generateCombinations() {
         return;
     }
 
+    // 모듈 로드 확인
+    if (typeof CombinationGenerator === 'undefined') {
+        alert('조합 생성 모듈이 로드되지 않았습니다. 페이지를 새로고침해주세요.');
+        return;
+    }
+
     const combinationCount = parseInt(document.getElementById('combination-count').value) || 10;
     const poolSize = parseInt(document.getElementById('predict-count').value) || 10;
 
-    // Get top N predicted numbers
-    const topNumbers = currentAnalysis.predictions.slice(0, poolSize);
+    // 번호별 점수 맵 생성
+    const numberScores = {};
+    currentAnalysis.predictions.forEach(pred => {
+        numberScores[pred.number] = pred.score;
+    });
 
-    console.log(`Generating combinations from top ${poolSize} numbers`);
+    // 조합 생성기 초기화
+    const constraintsConfig = (typeof getDefaultConstraints !== 'undefined') ? getDefaultConstraints() : {};
+    const scoringConfig = (typeof getDefaultScoringConfig !== 'undefined') ? getDefaultScoringConfig() : {};
+    
+    const config = {
+        poolSize: Math.max(12, poolSize), // 최소 12개 풀 사용
+        maxAttempts: 50000,
+        minConstraintScore: 0.7,
+        strictConstraints: false,
+        constraints: constraintsConfig,
+        scoring: scoringConfig
+    };
 
-    // Generate all possible 6-number combinations
-    const allCombinations = [];
-    const numbers = topNumbers.map(p => p.number);
-    const scores = topNumbers.map(p => p.score);
+    const generator = new CombinationGenerator(numberScores, config);
 
-    // Create score map for quick lookup
-    const scoreMap = {};
-    topNumbers.forEach(p => scoreMap[p.number] = p.score);
+    // 진행 표시
+    showProgress(true, {
+        message: '조합 생성 중...',
+        progress: 0
+    });
 
-    // Generate combinations (C(n, 6))
-    function combine(arr, size, start = 0, combo = []) {
-        if (combo.length === size) {
-            // Calculate combination score (average of selected numbers)
-            const comboScore = combo.reduce((sum, num) => sum + scoreMap[num], 0) / combo.length;
-            allCombinations.push({
-                numbers: [...combo],
-                score: comboScore
+    // 조합 생성 (약간의 지연을 두어 UI가 업데이트될 시간 제공)
+    setTimeout(() => {
+        try {
+            // 다양성을 고려한 조합 생성
+            const combinations = generator.generateDiverse(combinationCount);
+
+            updateProgress({
+                message: '조합 생성 완료!',
+                progress: 100
             });
-            return;
+
+            setTimeout(() => {
+                showProgress(false);
+
+                if (combinations.length === 0) {
+                    showMessage('제약조건을 만족하는 조합을 생성하지 못했습니다. 풀 크기를 늘려보세요.', 'warning');
+                    return;
+                }
+
+                console.log(`Generated ${combinations.length} combinations with constraints`);
+
+                // Display combinations
+                displayCombinations(combinations);
+
+                showMessage(`${combinations.length}개 조합이 생성되었습니다! (제약조건 적용)`, 'success');
+            }, 300);
+        } catch (error) {
+            showProgress(false);
+            console.error('Error generating combinations:', error);
+            showMessage('조합 생성 중 오류가 발생했습니다: ' + error.message, 'error');
         }
-
-        for (let i = start; i < arr.length; i++) {
-            combo.push(arr[i]);
-            combine(arr, size, i + 1, combo);
-            combo.pop();
-        }
-    }
-
-    combine(numbers, 6);
-
-    // Sort by score (descending)
-    allCombinations.sort((a, b) => b.score - a.score);
-
-    // Take top N combinations
-    const topCombinations = allCombinations.slice(0, combinationCount);
-
-    console.log(`Generated ${allCombinations.length} total combinations, showing top ${topCombinations.length}`);
-
-    // Display combinations
-    displayCombinations(topCombinations);
-
-    showMessage(`${topCombinations.length}개 조합이 생성되었습니다!`, 'success');
+    }, 100);
 }
 
 /**
- * Display combinations
+ * Display combinations with constraint information
  */
 function displayCombinations(combinations) {
     const container = document.getElementById('combinations-results');
@@ -1410,16 +1841,27 @@ function displayCombinations(combinations) {
         rank.style.cssText = 'font-weight: 700; color: #1e293b; font-size: 1.1rem;';
         rank.textContent = `#${idx + 1}`;
 
+        const scoreInfo = document.createElement('div');
+        scoreInfo.style.cssText = 'display: flex; flex-direction: column; align-items: flex-end; gap: 4px;';
+        
         const score = document.createElement('div');
-        score.style.cssText = 'color: #64748b; font-size: 0.9rem;';
-        score.textContent = `점수: ${(combo.score * 100).toFixed(1)}`;
+        score.style.cssText = 'color: #1e293b; font-size: 0.95rem; font-weight: 600;';
+        score.textContent = `점수: ${combo.score.toFixed(2)}`;
+        
+        const confidence = document.createElement('div');
+        confidence.style.cssText = 'color: #64748b; font-size: 0.85rem;';
+        const confPercent = (combo.confidence * 100).toFixed(0);
+        confidence.textContent = `신뢰도: ${confPercent}%`;
+        
+        scoreInfo.appendChild(score);
+        scoreInfo.appendChild(confidence);
 
         header.appendChild(rank);
-        header.appendChild(score);
+        header.appendChild(scoreInfo);
 
         // Numbers
         const numbersDiv = document.createElement('div');
-        numbersDiv.style.cssText = 'display: flex; gap: 8px; flex-wrap: wrap;';
+        numbersDiv.style.cssText = 'display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;';
 
         const sortedNumbers = [...combo.numbers].sort((a, b) => a - b);
 
@@ -1430,10 +1872,29 @@ function displayCombinations(combinations) {
             numbersDiv.appendChild(ball);
         });
 
-        // Copy button
+        // Constraint Info (if available)
+        let constraintInfo = null;
+        if (combo.constraintScore !== undefined) {
+            constraintInfo = document.createElement('div');
+            constraintInfo.style.cssText = `
+                margin-bottom: 12px;
+                padding: 8px 12px;
+                background: ${combo.constraintScore >= 0.8 ? '#d1fae5' : combo.constraintScore >= 0.6 ? '#fef3c7' : '#fee2e2'};
+                border-radius: 6px;
+                font-size: 0.85rem;
+                color: ${combo.constraintScore >= 0.8 ? '#065f46' : combo.constraintScore >= 0.6 ? '#92400e' : '#991b1b'};
+            `;
+            const constraintPercent = (combo.constraintScore * 100).toFixed(0);
+            constraintInfo.textContent = `제약조건 충족도: ${constraintPercent}% (합계: ${sortedNumbers.reduce((a, b) => a + b, 0)})`;
+        }
+
+        // Action buttons
+        const actionsDiv = document.createElement('div');
+        actionsDiv.style.cssText = 'display: flex; gap: 8px;';
+        
         const copyBtn = document.createElement('button');
         copyBtn.className = 'btn btn-primary';
-        copyBtn.style.cssText = 'margin-top: 12px; padding: 8px 16px; font-size: 0.9rem;';
+        copyBtn.style.cssText = 'flex: 1; padding: 8px 16px; font-size: 0.9rem;';
         copyBtn.textContent = '📋 복사';
         copyBtn.onclick = () => {
             const text = sortedNumbers.join(', ');
@@ -1442,22 +1903,29 @@ function displayCombinations(combinations) {
             });
         };
 
+        actionsDiv.appendChild(copyBtn);
+
         card.appendChild(header);
         card.appendChild(numbersDiv);
-        card.appendChild(copyBtn);
+        if (constraintInfo) {
+            card.appendChild(constraintInfo);
+        }
+        card.appendChild(actionsDiv);
 
-        // Hover effect
-        card.addEventListener('mouseenter', () => {
-            card.style.borderColor = '#2563eb';
-            card.style.transform = 'translateY(-2px)';
-            card.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
-        });
+        // Hover effect (for non-touch devices)
+        if (window.matchMedia('(hover: hover)').matches) {
+            card.addEventListener('mouseenter', () => {
+                card.style.borderColor = '#2563eb';
+                card.style.transform = 'translateY(-2px)';
+                card.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
+            });
 
-        card.addEventListener('mouseleave', () => {
-            card.style.borderColor = '#e2e8f0';
-            card.style.transform = 'translateY(0)';
-            card.style.boxShadow = 'none';
-        });
+            card.addEventListener('mouseleave', () => {
+                card.style.borderColor = '#e2e8f0';
+                card.style.transform = 'translateY(0)';
+                card.style.boxShadow = 'none';
+            });
+        }
 
         container.appendChild(card);
     });
@@ -1469,12 +1937,15 @@ function displayCombinations(combinations) {
         padding: 16px;
         background: #dbeafe;
         border-radius: 8px;
-        text-align: center;
         color: #1e40af;
     `;
     summary.innerHTML = `
-        <strong>💡 팁:</strong> 상위 조합일수록 예측 점수가 높은 번호들로 구성되어 있습니다.<br>
-        각 조합의 번호를 클릭하여 복사할 수 있습니다.
+        <div style="font-weight: 600; margin-bottom: 8px;">💡 조합 생성 정보</div>
+        <div style="font-size: 0.9rem; line-height: 1.6;">
+            • 모든 조합은 구조적 제약조건을 만족합니다 (합계 범위, 홀짝 비율, 고저 비율 등)<br>
+            • 점수는 개별 번호의 예측 점수 기반으로 계산되었습니다<br>
+            • 신뢰도는 조합의 일관성과 평균 점수를 기반으로 합니다
+        </div>
     `;
 
     container.appendChild(summary);
