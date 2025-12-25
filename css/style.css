@@ -161,7 +161,47 @@ header p {
     margin: 0;
 }
 
-/* 그리드 레이아웃 */
+/* 메인 콘텐츠 그리드 - 4열 레이아웃 */
+.main-content-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+}
+
+/* 스크롤 가능한 카드 */
+.card-with-scroll {
+    display: flex;
+    flex-direction: column;
+    max-height: 550px;
+}
+
+.card-with-scroll > div:not(.card-header-compact) {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+    -webkit-overflow-scrolling: touch;
+}
+
+.card-with-scroll > div:not(.card-header-compact)::-webkit-scrollbar {
+    width: 6px;
+}
+
+.card-with-scroll > div:not(.card-header-compact)::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.card-with-scroll > div:not(.card-header-compact)::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 3px;
+}
+
+.card-with-scroll > div:not(.card-header-compact)::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* 그리드 레이아웃 (기존 호환성 유지) */
 .main-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -176,10 +216,24 @@ header p {
     margin-bottom: var(--spacing-md);
 }
 
+@media (max-width: 1400px) {
+    .main-content-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
 @media (max-width: 1024px) {
+    .main-content-grid {
+        grid-template-columns: 1fr;
+    }
+    
     .main-grid,
     .secondary-grid {
         grid-template-columns: 1fr;
+    }
+    
+    .card-with-scroll {
+        max-height: none;
     }
 }
 
@@ -303,9 +357,15 @@ header p {
 
 .prediction-grid-compact {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
-    gap: var(--spacing-sm);
-    margin: var(--spacing-md) 0;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    margin: var(--spacing-sm) 0;
+}
+
+@media (max-width: 1400px) {
+    .prediction-grid-compact {
+        grid-template-columns: repeat(4, 1fr);
+    }
 }
 
 .prediction-item {
@@ -418,8 +478,10 @@ header p {
 
 .chart-container-compact {
     position: relative;
-    height: 250px;
-    margin: var(--spacing-md) 0;
+    height: 400px;
+    margin: var(--spacing-sm) 0;
+    flex: 1;
+    min-height: 300px;
 }
 
 /* Weights Display */
@@ -431,10 +493,33 @@ header p {
 }
 
 .weights-container-compact {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: var(--spacing-sm);
-    margin: var(--spacing-md) 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: var(--spacing-sm) 0;
+}
+
+.weights-container-compact .weight-item {
+    margin-bottom: 0;
+}
+
+.weights-container-compact .weight-bar {
+    height: 18px;
+}
+
+.weights-container-compact .weight-label {
+    font-size: var(--font-size-xs);
+    margin-bottom: 3px;
+}
+
+.weights-container-compact .weight-fill {
+    height: 18px;
+    padding-right: 4px;
+    font-size: 0.65rem;
+}
+
+.weights-container-compact .weight-value {
+    font-size: 0.65rem;
 }
 
 .weight-item {
@@ -658,13 +743,34 @@ header p {
 
 /* 컴팩트 조합 결과 */
 .combinations-compact {
-    max-height: 400px;
+    flex: 1;
     overflow-y: auto;
+    min-height: 0;
 }
 
-.combinations-compact .combination-card {
-    padding: var(--spacing-sm);
-    margin-bottom: var(--spacing-sm);
+.combination-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 8px;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+}
+
+.combination-row:hover {
+    background-color: #f8f9fa;
+}
+
+.combinations-compact .lotto-ball {
+    width: 32px;
+    height: 32px;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.combinations-compact .lotto-ball:hover {
+    transform: scale(1.1);
 }
 
 /* Tooltip */

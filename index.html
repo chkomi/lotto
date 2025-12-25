@@ -65,57 +65,54 @@
                 </div>
             </div>
 
-            <!-- Main Grid: 예측 번호와 조합을 나란히 -->
-            <div class="main-grid">
-                <!-- Next Round Prediction -->
-                <div class="card card-compact">
+            <!-- 4열 메인 그리드: 예측 번호, 조합, 가중치, 차트를 모두 나란히 -->
+            <div class="main-content-grid">
+                <!-- 예측 번호 -->
+                <div class="card card-compact card-with-scroll">
                     <div class="card-header-compact">
                         <h2 class="card-title-compact">🎯 예측 번호</h2>
-                        <div id="next-round-info" style="font-size: 0.75rem; color: #64748b;"></div>
+                        <div id="next-round-info" style="font-size: 0.7rem; color: #64748b;"></div>
                     </div>
                     <div id="prediction-results" class="prediction-grid-compact">
                         <!-- Predictions will be inserted here -->
                     </div>
                 </div>
 
-                <!-- Combinations -->
-                <div class="card card-compact">
+                <!-- 추천 조합 -->
+                <div class="card card-compact card-with-scroll">
                     <div class="card-header-compact">
                         <h2 class="card-title-compact">🎲 추천 조합</h2>
-                        <div style="display: flex; gap: 8px; align-items: center;">
+                        <div style="display: flex; gap: 6px; align-items: center;">
                             <input type="number" id="combination-count" value="5" min="3" max="20" 
-                                   style="width: 60px; padding: 4px 8px; font-size: 0.875rem;">
+                                   style="width: 50px; padding: 4px 6px; font-size: 0.75rem;">
                             <button class="btn btn-success" onclick="generateCombinations()" 
-                                    style="padding: 6px 12px; font-size: 0.875rem; min-height: auto;">
+                                    style="padding: 4px 8px; font-size: 0.75rem; min-height: 28px;">
                                 생성
                             </button>
                         </div>
                     </div>
                     <div id="combinations-results" class="combinations-compact">
                         <!-- Combinations will be inserted here -->
-                        <div style="text-align: center; padding: 20px; color: #94a3b8; font-size: 0.875rem;">
-                            조합 생성 버튼을 클릭하세요
+                        <div style="text-align: center; padding: 16px; color: #94a3b8; font-size: 0.8rem;">
+                            조합 생성 버튼 클릭
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Secondary Grid: 가중치와 차트를 나란히 -->
-            <div class="secondary-grid">
-                <!-- Feature Weights -->
-                <div class="card card-compact">
+                <!-- 특성별 가중치 -->
+                <div class="card card-compact card-with-scroll">
                     <div class="card-header-compact">
-                        <h2 class="card-title-compact">특성별 가중치</h2>
+                        <h2 class="card-title-compact">특성 가중치</h2>
                     </div>
                     <div id="weights-display" class="weights-container-compact">
                         <!-- Weights will be inserted here -->
                     </div>
                 </div>
 
-                <!-- All Numbers Scores -->
-                <div class="card card-compact">
+                <!-- 전체 번호 점수 차트 -->
+                <div class="card card-compact card-with-scroll">
                     <div class="card-header-compact">
-                        <h2 class="card-title-compact">전체 번호 점수</h2>
+                        <h2 class="card-title-compact">번호 점수</h2>
                     </div>
                     <div class="chart-container-compact">
                         <canvas id="scores-chart"></canvas>

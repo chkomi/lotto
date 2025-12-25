@@ -179,15 +179,11 @@ class CombinationGenerator {
             }
         }
         
-        // 점수 기준으로 정렬
-        combinations.sort((a, b) => {
-            // 먼저 점수로 정렬
-            if (Math.abs(a.score - b.score) > 0.01) {
-                return b.score - a.score;
-            }
-            // 점수가 같으면 제약조건 충족도로 정렬
-            return b.constraintScore - a.constraintScore;
-        });
+        // 완전 무작위로 섞기 (점수 순 정렬 제거)
+        for (let i = combinations.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [combinations[i], combinations[j]] = [combinations[j], combinations[i]];
+        }
         
         return combinations;
     }
@@ -264,13 +260,11 @@ class CombinationGenerator {
             }
         }
         
-        // 점수 기준으로 정렬
-        combinations.sort((a, b) => {
-            if (Math.abs(a.score - b.score) > 0.01) {
-                return b.score - a.score;
-            }
-            return b.constraintScore - a.constraintScore;
-        });
+        // 완전 무작위로 섞기 (점수 순 정렬 제거)
+        for (let i = combinations.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [combinations[i], combinations[j]] = [combinations[j], combinations[i]];
+        }
         
         return combinations;
     }

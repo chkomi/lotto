@@ -759,7 +759,7 @@ function displayPredictions(analysis, count) {
 }
 
 /**
- * Create a prediction item element (compact version)
+ * Create a prediction item element (ultra compact version)
  */
 function createPredictionItem(pred, displayRank, isTop6) {
     const item = document.createElement('div');
@@ -768,11 +768,11 @@ function createPredictionItem(pred, displayRank, isTop6) {
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 6px;
-        padding: 10px 8px;
+        gap: 4px;
+        padding: 6px 4px;
         background: ${isTop6 ? '#E6F2FF' : '#ffffff'};
         border: ${isTop6 ? '2px solid #004EA2' : '1px solid #e2e8f0'};
-        border-radius: 8px;
+        border-radius: 6px;
         transition: all 0.2s ease;
     `;
 
@@ -780,38 +780,29 @@ function createPredictionItem(pred, displayRank, isTop6) {
     ball.className = `prediction-number lotto-ball ${getBallColorClass(pred.number)}`;
     ball.textContent = pred.number;
     ball.style.cssText = `
-        font-size: ${isTop6 ? '1.125rem' : '1rem'};
+        font-size: 0.875rem;
         font-weight: 700;
-        width: ${isTop6 ? '44px' : '40px'};
-        height: ${isTop6 ? '44px' : '40px'};
-        line-height: ${isTop6 ? '44px' : '40px'};
+        width: 36px;
+        height: 36px;
+        line-height: 36px;
     `;
 
     const rank = document.createElement('div');
     rank.style.cssText = `
-        font-size: 0.75rem;
+        font-size: 0.65rem;
         font-weight: 600;
         color: ${isTop6 ? '#004EA2' : '#64748b'};
     `;
     rank.textContent = `#${displayRank}`;
 
-    const score = document.createElement('div');
-    score.style.cssText = `
-        font-size: 0.7rem;
-        color: #94a3b8;
-    `;
-    const scorePercent = (pred.score * 100).toFixed(1);
-    score.textContent = `${scorePercent}점`;
-
     item.appendChild(ball);
     item.appendChild(rank);
-    item.appendChild(score);
 
     // 호버 효과
     if (window.matchMedia('(hover: hover)').matches) {
         item.addEventListener('mouseenter', () => {
             item.style.borderColor = '#004EA2';
-            item.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+            item.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
         });
         item.addEventListener('mouseleave', () => {
             item.style.borderColor = isTop6 ? '#004EA2' : '#e2e8f0';
@@ -863,21 +854,25 @@ function displayWeights(analysis) {
 
         const item = document.createElement('div');
         item.className = 'weight-item';
+        item.style.cssText = 'margin-bottom: 6px;';
 
         const labelDiv = document.createElement('div');
         labelDiv.className = 'weight-label';
+        labelDiv.style.cssText = 'font-size: 0.7rem; margin-bottom: 3px;';
         labelDiv.textContent = label;
 
         const bar = document.createElement('div');
         bar.className = 'weight-bar';
+        bar.style.cssText = 'height: 18px;';
 
         const fill = document.createElement('div');
         fill.className = 'weight-fill';
-        fill.style.width = `${weight * 100}%`;
+        fill.style.cssText = `width: ${weight * 100}%; height: 18px; padding-right: 4px; font-size: 0.65rem;`;
 
         const value = document.createElement('span');
         value.className = 'weight-value';
-        value.textContent = `${(weight * 100).toFixed(1)}%`;
+        value.style.cssText = 'font-size: 0.65rem;';
+        value.textContent = `${(weight * 100).toFixed(0)}%`;
         fill.appendChild(value);
 
         bar.appendChild(fill);
@@ -2045,7 +2040,7 @@ function generateCombinations() {
 }
 
 /**
- * Display combinations with constraint information (compact version)
+ * Display combinations as rows (no copy button, divider every 5 rows)
  */
 function displayCombinations(combinations) {
     const container = document.getElementById('combinations-results');
@@ -2056,86 +2051,82 @@ function displayCombinations(combinations) {
         return;
     }
 
-    // Create combination cards (compact)
+    // Create combination rows
     combinations.forEach((combo, idx) => {
-        const card = document.createElement('div');
-        card.className = 'combination-card';
-        card.style.cssText = `
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 6px;
-            padding: 10px;
-            margin-bottom: 8px;
-            transition: all 0.2s ease;
-        `;
+        // 5줄마다 구분선 추가
+        if (idx > 0 && idx % 5 === 0) {
+            const divider = document.createElement('div');
+            divider.style.cssText = `
+                height: 1px;
+                background: #e2e8f0;
+                margin: 8px 0;
+            `;
+            container.appendChild(divider);
+        }
 
-        // Compact header
-        const header = document.createElement('div');
-        header.style.cssText = `
+        // 조합 행 생성
+        const row = document.createElement('div');
+        row.className = 'combination-row';
+        row.style.cssText = `
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            margin-bottom: 8px;
+            gap: 12px;
+            padding: 10px 8px;
+            border-radius: 4px;
+            transition: background-color 0.2s ease;
         `;
 
+        // 순번 표시
         const rank = document.createElement('div');
-        rank.style.cssText = 'font-weight: 600; color: #004EA2; font-size: 0.875rem;';
+        rank.style.cssText = `
+            font-weight: 600;
+            color: #004EA2;
+            font-size: 0.875rem;
+            min-width: 32px;
+            text-align: right;
+        `;
         rank.textContent = `#${idx + 1}`;
 
-        const scoreInfo = document.createElement('div');
-        scoreInfo.style.cssText = 'display: flex; gap: 8px; align-items: center; font-size: 0.75rem; color: #64748b;';
-        scoreInfo.innerHTML = `
-            <span>점수: <strong>${combo.score.toFixed(1)}</strong></span>
-            ${combo.confidence !== undefined ? `<span>신뢰: ${(combo.confidence * 100).toFixed(0)}%</span>` : ''}
-        `;
-
-        header.appendChild(rank);
-        header.appendChild(scoreInfo);
-
-        // Numbers (compact)
+        // 번호들
         const numbersDiv = document.createElement('div');
-        numbersDiv.style.cssText = 'display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px;';
+        numbersDiv.style.cssText = 'display: flex; gap: 6px; flex-wrap: wrap; flex: 1;';
 
         const sortedNumbers = [...combo.numbers].sort((a, b) => a - b);
 
         sortedNumbers.forEach(num => {
             const ball = document.createElement('div');
             ball.className = `lotto-ball ${getBallColorClass(num)}`;
-            ball.style.cssText = 'width: 36px; height: 36px; font-size: 0.875rem;';
+            ball.style.cssText = 'width: 32px; height: 32px; font-size: 0.875rem; line-height: 32px;';
             ball.textContent = num;
+            
+            // 클릭하면 복사
+            ball.style.cursor = 'pointer';
+            ball.title = '클릭하여 복사';
+            ball.onclick = () => {
+                const text = sortedNumbers.join(', ');
+                navigator.clipboard.writeText(text).then(() => {
+                    showMessage('번호가 복사되었습니다!', 'success');
+                });
+            };
+            
             numbersDiv.appendChild(ball);
         });
 
-        // Action button (compact)
-        const copyBtn = document.createElement('button');
-        copyBtn.className = 'btn btn-primary';
-        copyBtn.style.cssText = 'width: 100%; padding: 6px; font-size: 0.75rem; min-height: 32px;';
-        copyBtn.textContent = '📋 복사';
-        copyBtn.onclick = () => {
-            const text = sortedNumbers.join(', ');
-            navigator.clipboard.writeText(text).then(() => {
-                showMessage('번호가 복사되었습니다!', 'success');
-            });
-        };
+        row.appendChild(rank);
+        row.appendChild(numbersDiv);
 
-        card.appendChild(header);
-        card.appendChild(numbersDiv);
-        card.appendChild(copyBtn);
-
-        // Hover effect
+        // 호버 효과
         if (window.matchMedia('(hover: hover)').matches) {
-            card.addEventListener('mouseenter', () => {
-                card.style.borderColor = '#004EA2';
-                card.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+            row.addEventListener('mouseenter', () => {
+                row.style.backgroundColor = '#f8f9fa';
             });
 
-            card.addEventListener('mouseleave', () => {
-                card.style.borderColor = '#e2e8f0';
-                card.style.boxShadow = 'none';
+            row.addEventListener('mouseleave', () => {
+                row.style.backgroundColor = 'transparent';
             });
         }
 
-        container.appendChild(card);
+        container.appendChild(row);
     });
 }
 
