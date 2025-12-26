@@ -2105,6 +2105,309 @@ function exportBacktestResults() {
 }
 
 /**
+ * 조합 일치 테스트 실행
+ * 지정된 회차까지의 데이터로 분석하여 조합을 생성하고,
+ * 다음 회차 당첨번호와 일치하는 조합이 나올 때까지 시도 횟수를 계산
+ */
+function runComboMatchTest() {
+    if (!analyzer || !analyzer.data || analyzer.data.length === 0) {
+        alert('데이터가 로드되지 않았습니다.');
+        return;
+    }
+
+    const testRound = parseInt(document.getElementById('combo-test-round').value);
+    const topN = parseInt(document.getElementById('combo-test-topn').value);
+    const maxAttempts = parseInt(document.getElementById('combo-test-max').value);
+    const targetHits = parseInt(document.getElementById('combo-test-target').value);
+    const method = document.getElementById('combo-test-method').value;
+
+    // 다음 회차 데이터 확인
+    const nextRound = testRound + 1;
+    const actualData = analyzer.data.find(d => d.round === nextRound);
+    
+    if (!actualData) {
+        alert(`${nextRound}회차 데이터가 없습니다. 테스트 기준 회차를 조정해주세요.`);
+        return;
+    }
+
+    const actualNumbers = actualData.numbers;
+    
+    // 결과 표시 영역
+    const resultsContainer = document.getElementById('combo-test-results');
+    resultsContainer.innerHTML = `
+        <div style="text-align: center; padding: 20px;">
+            <div class="loading-spinner"></div>
+            <p style="margin-top: 10px; color: var(--text-secondary);">조합 일치 테스트 진행 중...</p>
+            <p id="combo-test-progress" style="font-size: 0.875rem; color: #64748b;">0 / ${maxAttempts.toLocaleString()} 시도</p>
+        </div>
+    `;
+
+    // 진행 표시
+    showProgress(true, {
+        message: '조합 일치 테스트 진행 중...',
+        progress: 0,
+        detail: `${nextRound}회차 당첨번호와 일치하는 조합 찾는 중...`
+    });
+
+    // 비동기로 실행 (UI 블로킹 방지)
+    setTimeout(() => {
+        try {
+            const result = executeComboMatchTest(testRound, topN, maxAttempts, targetHits, method, actualNumbers);
+            showProgress(false);
+            displayComboMatchResults(result, testRound, nextRound, actualNumbers, targetHits);
+        } catch (error) {
+            showProgress(false);
+            resultsContainer.innerHTML = `
+                <div style="padding: 20px; background: #fee2e2; border-radius: 8px; color: #dc2626;">
+                    <strong>오류 발생:</strong> ${error.message}
+                </div>
+            `;
+        }
+    }, 100);
+}
+
+/**
+ * 조합 일치 테스트 실행 (실제 로직)
+ */
+function executeComboMatchTest(testRound, topN, maxAttempts, targetHits, method, actualNumbers) {
+    const rounds = analyzer.params.recentWindow || 50;
+    
+    // 분석 실행 (testRound까지의 데이터만 사용)
+    const analysis = runAnalysisByMethod(method, testRound, rounds);
+    
+    if (!analysis || !analysis.predictions) {
+        throw new Error('분석 결과를 가져올 수 없습니다.');
+    }
+
+    // 상위 N개 번호 추출
+    const topNumbers = analysis.predictions.slice(0, topN).map(p => p.number);
+    
+    // 결과 저장
+    const results = {
+        attempts: 0,
+        found: false,
+        foundAttempt: -1,
+        bestHits: 0,
+        bestCombination: null,
+        hitDistribution: { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 },
+        firstMatchByHits: { 3: -1, 4: -1, 5: -1, 6: -1 },
+        topNumbers: topNumbers,
+        method: method
+    };
+
+    const progressEl = document.getElementById('combo-test-progress');
+    const updateInterval = Math.max(1, Math.floor(maxAttempts / 100)); // 1% 단위로 업데이트
+    
+    // 조합 생성 및 테스트
+    for (let i = 0; i < maxAttempts; i++) {
+        results.attempts++;
+        
+        // 진행 상황 업데이트
+        if (i % updateInterval === 0 && progressEl) {
+            progressEl.textContent = `${i.toLocaleString()} / ${maxAttempts.toLocaleString()} 시도`;
+            updateProgress({
+                progress: (i / maxAttempts) * 100,
+                detail: `${i.toLocaleString()}번 시도 중...`
+            });
+        }
+        
+        // 무작위 조합 생성 (topNumbers에서 6개 선택)
+        const combination = generateRandomCombination(topNumbers);
+        
+        // 일치 개수 계산
+        const hits = countMatches(combination, actualNumbers);
+        
+        // 히트 분포 업데이트
+        results.hitDistribution[hits]++;
+        
+        // 최고 기록 갱신
+        if (hits > results.bestHits) {
+            results.bestHits = hits;
+            results.bestCombination = [...combination];
+        }
+        
+        // 각 일치 개수별 첫 번째 발생 기록
+        if (hits >= 3 && results.firstMatchByHits[3] === -1) {
+            results.firstMatchByHits[3] = i + 1;
+        }
+        if (hits >= 4 && results.firstMatchByHits[4] === -1) {
+            results.firstMatchByHits[4] = i + 1;
+        }
+        if (hits >= 5 && results.firstMatchByHits[5] === -1) {
+            results.firstMatchByHits[5] = i + 1;
+        }
+        if (hits >= 6 && results.firstMatchByHits[6] === -1) {
+            results.firstMatchByHits[6] = i + 1;
+        }
+        
+        // 목표 달성 확인
+        if (hits >= targetHits) {
+            results.found = true;
+            results.foundAttempt = i + 1;
+            results.bestCombination = [...combination];
+            break;
+        }
+    }
+    
+    return results;
+}
+
+/**
+ * topNumbers에서 6개를 무작위로 선택하여 조합 생성
+ */
+function generateRandomCombination(numbers) {
+    const shuffled = [...numbers].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, 6).sort((a, b) => a - b);
+}
+
+/**
+ * 두 배열 간의 일치 개수 계산
+ */
+function countMatches(arr1, arr2) {
+    return arr1.filter(n => arr2.includes(n)).length;
+}
+
+/**
+ * 조합 일치 테스트 결과 표시
+ */
+function displayComboMatchResults(results, testRound, nextRound, actualNumbers, targetHits) {
+    const resultsContainer = document.getElementById('combo-test-results');
+    
+    const hitLabels = { 3: '5등', 4: '4등', 5: '3등', 6: '1등' };
+    const foundClass = results.found ? 'var(--success-color)' : 'var(--warning-color)';
+    
+    let html = `
+        <div style="background: white; border: 1px solid var(--border-color); border-radius: 12px; padding: 20px;">
+            <h3 style="margin: 0 0 16px 0; color: var(--primary-color);">📊 테스트 결과</h3>
+            
+            <!-- 테스트 정보 -->
+            <div style="background: #f8fafc; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+                    <div>
+                        <strong style="color: var(--text-secondary);">분석 기준 회차:</strong>
+                        <span style="color: var(--primary-color); font-weight: 600;">${testRound}회차</span>
+                    </div>
+                    <div>
+                        <strong style="color: var(--text-secondary);">실제 당첨 회차:</strong>
+                        <span style="color: var(--primary-color); font-weight: 600;">${nextRound}회차</span>
+                    </div>
+                    <div>
+                        <strong style="color: var(--text-secondary);">분석 방법:</strong>
+                        <span style="color: var(--primary-color);">${getMethodName(results.method)}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 실제 당첨번호 -->
+            <div style="margin-bottom: 16px;">
+                <strong style="color: var(--text-secondary);">${nextRound}회차 실제 당첨번호:</strong>
+                <div style="display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap;">
+                    ${actualNumbers.map(n => `<div class="lotto-ball ${getBallColorClass(n)}" style="width: 36px; height: 36px; line-height: 36px; font-size: 0.875rem;">${n}</div>`).join('')}
+                </div>
+            </div>
+            
+            <!-- 예측 번호 풀 -->
+            <div style="margin-bottom: 16px;">
+                <strong style="color: var(--text-secondary);">예측 번호 풀 (상위 ${results.topNumbers.length}개):</strong>
+                <div style="display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap;">
+                    ${results.topNumbers.map(n => {
+                        const isMatch = actualNumbers.includes(n);
+                        return `<div class="lotto-ball ${getBallColorClass(n)}" style="width: 32px; height: 32px; line-height: 32px; font-size: 0.75rem; ${isMatch ? 'box-shadow: 0 0 0 3px #22c55e;' : 'opacity: 0.7;'}">${n}</div>`;
+                    }).join('')}
+                </div>
+                <small style="color: #64748b; display: block; margin-top: 4px;">
+                    (초록색 테두리: 실제 당첨번호와 일치)
+                </small>
+            </div>
+            
+            <!-- 주요 결과 -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 16px;">
+                <div style="background: ${results.found ? '#dcfce7' : '#fef3c7'}; padding: 16px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 1.5rem; font-weight: 700; color: ${foundClass};">
+                        ${results.found ? '✅ 성공' : '⚠️ 미달성'}
+                    </div>
+                    <div style="font-size: 0.875rem; color: var(--text-secondary);">
+                        ${targetHits}개+ 일치 목표
+                    </div>
+                </div>
+                <div style="background: #eff6ff; padding: 16px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 1.5rem; font-weight: 700; color: var(--primary-color);">
+                        ${results.attempts.toLocaleString()}회
+                    </div>
+                    <div style="font-size: 0.875rem; color: var(--text-secondary);">총 시도 횟수</div>
+                </div>
+                <div style="background: #f0fdf4; padding: 16px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 1.5rem; font-weight: 700; color: #16a34a;">
+                        ${results.bestHits}개
+                    </div>
+                    <div style="font-size: 0.875rem; color: var(--text-secondary);">최대 일치 개수</div>
+                </div>
+            </div>
+            
+            <!-- 최고 일치 조합 -->
+            ${results.bestCombination ? `
+            <div style="background: #f0fdf4; border: 2px solid #22c55e; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+                <strong style="color: #16a34a;">🏆 최고 일치 조합 (${results.bestHits}개 일치):</strong>
+                <div style="display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap;">
+                    ${results.bestCombination.map(n => {
+                        const isMatch = actualNumbers.includes(n);
+                        return `<div class="lotto-ball ${getBallColorClass(n)}" style="width: 36px; height: 36px; line-height: 36px; font-size: 0.875rem; ${isMatch ? 'box-shadow: 0 0 0 3px #22c55e;' : ''}">${n}</div>`;
+                    }).join('')}
+                </div>
+            </div>
+            ` : ''}
+            
+            <!-- 각 일치 개수별 첫 발생 시점 -->
+            <div style="margin-bottom: 16px;">
+                <strong style="color: var(--text-secondary);">일치 개수별 첫 발생 시점:</strong>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin-top: 8px;">
+                    ${[3, 4, 5, 6].map(hits => {
+                        const attempt = results.firstMatchByHits[hits];
+                        return `
+                            <div style="background: ${attempt > 0 ? '#dcfce7' : '#f1f5f9'}; padding: 12px; border-radius: 6px; text-align: center;">
+                                <div style="font-weight: 600; color: ${attempt > 0 ? '#16a34a' : '#94a3b8'};">
+                                    ${hits}개 일치 (${hitLabels[hits] || ''})
+                                </div>
+                                <div style="font-size: 1.125rem; font-weight: 700; color: ${attempt > 0 ? '#16a34a' : '#94a3b8'};">
+                                    ${attempt > 0 ? attempt.toLocaleString() + '번째' : '-'}
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+            
+            <!-- 일치 개수 분포 -->
+            <div>
+                <strong style="color: var(--text-secondary);">일치 개수 분포:</strong>
+                <div style="margin-top: 8px;">
+                    ${[0, 1, 2, 3, 4, 5, 6].map(hits => {
+                        const count = results.hitDistribution[hits];
+                        const percentage = results.attempts > 0 ? (count / results.attempts * 100).toFixed(2) : 0;
+                        const maxWidth = Math.max(...Object.values(results.hitDistribution));
+                        const barWidth = maxWidth > 0 ? (count / maxWidth * 100) : 0;
+                        const barColor = hits >= targetHits ? '#22c55e' : '#3b82f6';
+                        return `
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                                <span style="width: 60px; font-size: 0.875rem;">${hits}개 일치:</span>
+                                <div style="flex: 1; background: #e5e7eb; border-radius: 4px; height: 20px; overflow: hidden;">
+                                    <div style="background: ${barColor}; height: 100%; width: ${barWidth}%; transition: width 0.3s;"></div>
+                                </div>
+                                <span style="width: 100px; font-size: 0.75rem; text-align: right;">
+                                    ${count.toLocaleString()}회 (${percentage}%)
+                                </span>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+        </div>
+    `;
+    
+    resultsContainer.innerHTML = html;
+}
+
+/**
  * Update statistics
  */
 function updateStatistics() {

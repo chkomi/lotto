@@ -221,6 +221,61 @@
                 </div>
             </div>
 
+            <!-- 조합 일치 테스트 -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">🎰 조합 일치 테스트</h2>
+                </div>
+                <div style="padding: 16px; background: linear-gradient(135deg, #fef3c7, #ffffff); border-radius: 8px; margin-bottom: 16px;">
+                    <p style="margin: 0; font-size: 0.875rem; color: #92400e;">
+                        💡 <strong>테스트 방법:</strong> 지정된 회차까지의 데이터로 분석하여 조합을 생성하고, 
+                        다음 회차(실제 당첨번호)와 몇 개가 일치하는지 테스트합니다.
+                        조합을 반복 생성하여 당첨번호와 일치하는 조합이 나올 때까지 몇 번 시도가 필요한지 확인합니다.
+                    </p>
+                </div>
+                <div class="controls">
+                    <div class="control-group">
+                        <label for="combo-test-round">테스트 기준 회차</label>
+                        <input type="number" id="combo-test-round" value="1200" min="100">
+                        <small style="color: #64748b;">이 회차까지 데이터로 분석 후 다음 회차 예측</small>
+                    </div>
+                    <div class="control-group">
+                        <label for="combo-test-topn">예측 번호 풀 크기</label>
+                        <input type="number" id="combo-test-topn" value="15" min="6" max="30">
+                        <small style="color: #64748b;">상위 N개 번호에서 조합 생성</small>
+                    </div>
+                    <div class="control-group">
+                        <label for="combo-test-max">최대 시도 횟수</label>
+                        <input type="number" id="combo-test-max" value="100000" min="1000" max="10000000">
+                        <small style="color: #64748b;">최대 조합 생성 횟수</small>
+                    </div>
+                    <div class="control-group">
+                        <label for="combo-test-target">목표 일치 개수</label>
+                        <select id="combo-test-target">
+                            <option value="3">3개 이상 일치</option>
+                            <option value="4">4개 이상 일치</option>
+                            <option value="5">5개 이상 일치</option>
+                            <option value="6" selected>6개 전체 일치 (1등)</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label for="combo-test-method">분석 방법</label>
+                        <select id="combo-test-method">
+                            <option value="entropy">엔트로피 가중치법</option>
+                            <option value="topsis">TOPSIS</option>
+                            <option value="ensemble">앙상블</option>
+                            <option value="randomForest">Random Forest</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary" onclick="runComboMatchTest()">
+                        🎲 조합 일치 테스트 실행
+                    </button>
+                </div>
+                <div id="combo-test-results" style="margin-top: 20px;">
+                    <!-- 결과가 여기에 표시됩니다 -->
+                </div>
+            </div>
+
             <!-- Backtest Statistics -->
             <div id="backtest-stats" class="grid grid-3">
                 <!-- Stats will be inserted here -->
