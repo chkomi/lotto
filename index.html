@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
@@ -8,10 +9,12 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <title>로또 번호 분석 시스템 - 엔트로피 가중치법</title>
     <!-- Pretendard 폰트 (KRDS에서 사용하는 폰트와 유사) -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+    <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
     <link rel="stylesheet" href="css/style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
+
 <body>
     <header>
         <div class="container">
@@ -25,6 +28,7 @@
         <div class="tabs">
             <button class="tab active" onclick="switchTab('prediction')">예측</button>
             <button class="tab" onclick="switchTab('backtest')">백테스팅</button>
+            <button class="tab" onclick="switchTab('advanced-backtest')">정밀분석</button>
             <button class="tab" onclick="switchTab('statistics')">통계</button>
             <button class="tab" onclick="switchTab('about')">설명</button>
         </div>
@@ -32,7 +36,8 @@
         <!-- Tab: Prediction -->
         <div id="tab-prediction" class="tab-content active">
             <!-- 데이터 업데이트 안내 -->
-            <div class="card card-compact" id="update-info-card" style="display: none; margin-bottom: var(--spacing-md); background: linear-gradient(135deg, #eff6ff, #ffffff); border: 2px solid #3b82f6;">
+            <div class="card card-compact" id="update-info-card"
+                style="display: none; margin-bottom: var(--spacing-md); background: linear-gradient(135deg, #eff6ff, #ffffff); border: 2px solid #3b82f6;">
                 <div class="card-header-compact">
                     <h2 class="card-title-compact">🔄 데이터 업데이트</h2>
                 </div>
@@ -99,10 +104,10 @@
                     <div class="card-header-compact">
                         <h2 class="card-title-compact">🎲 추천 조합</h2>
                         <div style="display: flex; gap: 6px; align-items: center;">
-                            <input type="number" id="combination-count" value="5" min="3" max="20" 
-                                   style="width: 50px; padding: 4px 6px; font-size: 0.75rem;">
-                            <button class="btn btn-success" onclick="generateCombinations()" 
-                                    style="padding: 4px 8px; font-size: 0.75rem; min-height: 28px;">
+                            <input type="number" id="combination-count" value="5" min="3" max="20"
+                                style="width: 50px; padding: 4px 6px; font-size: 0.75rem;">
+                            <button class="btn btn-success" onclick="generateCombinations()"
+                                style="padding: 4px 8px; font-size: 0.75rem; min-height: 28px;">
                                 생성
                             </button>
                         </div>
@@ -226,18 +231,28 @@
                 <div class="card-header">
                     <h2 class="card-title">🎰 조합 일치 테스트</h2>
                 </div>
-                <div style="padding: 16px; background: linear-gradient(135deg, #fef3c7, #ffffff); border-radius: 8px; margin-bottom: 16px;">
+                <div
+                    style="padding: 16px; background: linear-gradient(135deg, #fef3c7, #ffffff); border-radius: 8px; margin-bottom: 16px;">
                     <p style="margin: 0; font-size: 0.875rem; color: #92400e;">
-                        💡 <strong>테스트 방법:</strong> 지정된 회차까지의 데이터로 분석하여 조합을 생성하고, 
+                        💡 <strong>테스트 방법:</strong> 시작~종료 회차 범위에서 각 회차까지의 데이터로 분석하여 조합을 생성하고,
                         다음 회차(실제 당첨번호)와 몇 개가 일치하는지 테스트합니다.
-                        조합을 반복 생성하여 당첨번호와 일치하는 조합이 나올 때까지 몇 번 시도가 필요한지 확인합니다.
+                        여러 회차에 대해 테스트하여 평균 통계를 확인할 수 있습니다.
                     </p>
                 </div>
                 <div class="controls">
                     <div class="control-group">
-                        <label for="combo-test-round">테스트 기준 회차</label>
-                        <input type="number" id="combo-test-round" value="1200" min="100">
-                        <small style="color: #64748b;">이 회차까지 데이터로 분석 후 다음 회차 예측</small>
+                        <label>테스트 회차 범위</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <div>
+                                <label style="font-size: 0.9rem;">시작 회차</label>
+                                <input type="number" id="combo-test-start" value="1100" min="100">
+                            </div>
+                            <div>
+                                <label style="font-size: 0.9rem;">종료 회차</label>
+                                <input type="number" id="combo-test-end" value="1200" min="100">
+                            </div>
+                        </div>
+                        <small style="color: #64748b;">각 회차까지 데이터로 분석 후 다음 회차 예측</small>
                     </div>
                     <div class="control-group">
                         <label for="combo-test-topn">예측 번호 풀 크기</label>
@@ -245,9 +260,9 @@
                         <small style="color: #64748b;">상위 N개 번호에서 조합 생성</small>
                     </div>
                     <div class="control-group">
-                        <label for="combo-test-max">최대 시도 횟수</label>
-                        <input type="number" id="combo-test-max" value="100000" min="1000" max="10000000">
-                        <small style="color: #64748b;">최대 조합 생성 횟수</small>
+                        <label for="combo-test-max">회차별 최대 시도 횟수</label>
+                        <input type="number" id="combo-test-max" value="10000" min="100" max="1000000">
+                        <small style="color: #64748b;">각 회차당 최대 조합 생성 횟수</small>
                     </div>
                     <div class="control-group">
                         <label for="combo-test-target">목표 일치 개수</label>
@@ -376,6 +391,145 @@
             </div>
         </div>
 
+        <!-- Tab: Advanced Backtest (정밀 분석) -->
+        <div id="tab-advanced-backtest" class="tab-content">
+            <!-- 설명 카드 -->
+            <div class="card" style="background: linear-gradient(135deg, #f0fdf4, #dcfce7); border: 2px solid #22c55e;">
+                <div style="padding: 16px;">
+                    <h3 style="margin: 0 0 8px 0; color: #166534;">🎯 정밀 백테스팅이란?</h3>
+                    <p style="margin: 0; color: #15803d; font-size: 0.9rem; line-height: 1.6;">
+                        각 번호의 <strong>출현 확률 점수</strong>를 계산하고, 높은 점수의 번호가 실제로 출현했는지 검증합니다.
+                        7가지 확률 향상 전략을 적용하여 당첨 가능성을 높입니다.
+                    </p>
+                </div>
+            </div>
+
+            <!-- 정밀 백테스팅 설정 -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">⚙️ 정밀 백테스팅 설정</h2>
+                </div>
+                <div class="controls">
+                    <div class="control-group">
+                        <label for="adv-backtest-start">시작 회차</label>
+                        <input type="number" id="adv-backtest-start" value="1100" min="100">
+                    </div>
+                    <div class="control-group">
+                        <label for="adv-backtest-end">종료 회차</label>
+                        <input type="number" id="adv-backtest-end" value="1200" min="100">
+                    </div>
+                    <div class="control-group">
+                        <label for="adv-backtest-topn">예측 번호 개수</label>
+                        <input type="number" id="adv-backtest-topn" value="10" min="6" max="20">
+                    </div>
+                    <button class="btn btn-success" onclick="runAdvancedBacktest()">
+                        🎯 정밀 백테스트 실행
+                    </button>
+                </div>
+            </div>
+
+            <!-- 전략 설정 -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">🎲 확률 향상 전략</h2>
+                </div>
+                <div style="padding: 16px;">
+                    <div id="strategy-toggles"
+                        style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px;">
+                        <label class="strategy-toggle">
+                            <input type="checkbox" name="strategy" value="hotCold" checked>
+                            <span><strong>🔥 핫/콜드</strong> - 최근 출현 빈도</span>
+                        </label>
+                        <label class="strategy-toggle">
+                            <input type="checkbox" name="strategy" value="sectionBalance" checked>
+                            <span><strong>📊 구간 균형</strong> - 구간별 분산</span>
+                        </label>
+                        <label class="strategy-toggle">
+                            <input type="checkbox" name="strategy" value="oddEvenBalance" checked>
+                            <span><strong>⚖️ 홀짝 균형</strong> - 3:3 비율 최적화</span>
+                        </label>
+                        <label class="strategy-toggle">
+                            <input type="checkbox" name="strategy" value="sumRange" checked>
+                            <span><strong>➕ 합계 범위</strong> - 100-170 집중</span>
+                        </label>
+                        <label class="strategy-toggle">
+                            <input type="checkbox" name="strategy" value="consecutiveLimit" checked>
+                            <span><strong>🔢 연속 제한</strong> - 2개 이하 유지</span>
+                        </label>
+                        <label class="strategy-toggle">
+                            <input type="checkbox" name="strategy" value="acValue" checked>
+                            <span><strong>📐 AC 값</strong> - 차이값 다양성</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 점수 분포 분석 결과 -->
+            <div class="grid grid-3" id="adv-backtest-stats">
+                <!-- 통계가 여기에 표시됩니다 -->
+            </div>
+
+            <!-- 점수별 성과 분석 -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">📈 점수 구간별 출현율</h2>
+                </div>
+                <div class="chart-container">
+                    <canvas id="score-performance-chart"></canvas>
+                </div>
+                <div id="score-performance-table" style="padding: 16px; overflow-x: auto;">
+                    <!-- 점수별 성과 테이블이 여기에 표시됩니다 -->
+                </div>
+            </div>
+
+            <!-- 캘리브레이션 플롯 -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">🎯 캘리브레이션 분석</h2>
+                </div>
+                <div class="chart-container">
+                    <canvas id="calibration-chart"></canvas>
+                </div>
+                <div id="calibration-metrics" style="padding: 16px;">
+                    <!-- 캘리브레이션 지표가 여기에 표시됩니다 -->
+                </div>
+            </div>
+
+            <!-- 전략별 성과 비교 -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">🏆 전략 성과 비교</h2>
+                </div>
+                <div id="strategy-comparison" style="padding: 16px;">
+                    <!-- 전략별 성과 비교가 여기에 표시됩니다 -->
+                </div>
+            </div>
+
+            <!-- 상세 결과 테이블 -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">📋 상세 결과</h2>
+                </div>
+                <div class="table-wrapper">
+                    <table class="backtest-table" id="adv-backtest-table">
+                        <thead>
+                            <tr>
+                                <th>회차</th>
+                                <th>예측 번호</th>
+                                <th>실제 번호</th>
+                                <th>적중</th>
+                                <th>평균 점수</th>
+                                <th>평균 순위</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- 결과가 여기에 표시됩니다 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
         <!-- Tab: Statistics -->
         <div id="tab-statistics" class="tab-content">
             <!-- Overall Stats -->
@@ -470,20 +624,21 @@
                     <p>과거 데이터를 이용하여 모델의 예측 성능을 검증합니다. 슬라이딩 윈도우 방식으로 각 회차를 예측하고 실제 당첨 번호와 비교하여 정확도를 측정합니다.</p>
 
                     <h3 style="margin-top: 20px; color: var(--primary-color);">⚠️ 중요 안내</h3>
-                    <p style="color: var(--danger-color); font-weight: 500;">이 시스템은 교육 및 연구 목적으로 제작되었습니다. 로또는 완전한 무작위 추첨이므로 어떠한 분석 방법도 당첨을 보장할 수 없습니다. 과도한 구매는 삼가시기 바랍니다.</p>
+                    <p style="color: var(--danger-color); font-weight: 500;">이 시스템은 교육 및 연구 목적으로 제작되었습니다. 로또는 완전한 무작위
+                        추첨이므로 어떠한 분석 방법도 당첨을 보장할 수 없습니다. 과도한 구매는 삼가시기 바랍니다.</p>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Scripts -->
-    <script src="js/lotto-data.js"></script>  <!-- 데이터 먼저 로드 -->
+    <script src="js/lotto-data.js"></script> <!-- 데이터 먼저 로드 -->
     <script src="js/entropy.js"></script>
     <script src="js/analyzer.js"></script>
     <script src="js/topsis.js"></script>
     <script src="js/random-forest.js"></script>
     <script src="js/association-rules.js"></script>
-    <script src="js/math-constants.js"></script>  <!-- 수학적 상수 분석 (e, π, φ) -->
+    <script src="js/math-constants.js"></script> <!-- 수학적 상수 분석 (e, π, φ) -->
     <script src="js/ensemble.js"></script>
     <!-- 조합 생성 모듈 -->
     <script src="js/combination/constraints.js"></script>
@@ -494,8 +649,12 @@
     <script src="js/backtest/walkforward.js"></script>
     <script src="js/backtest/optimizer.js"></script>
     <script src="js/backtest.js"></script>
-    <!-- 회차 자동 계산 모듈 -->
     <script src="js/round-calculator.js"></script>
+    <!-- 확률 점수 및 고급 백테스팅 모듈 -->
+    <script src="js/probability-scorer.js"></script>
+    <script src="js/advanced-backtester.js"></script>
+    <script src="js/probability-strategies.js"></script>
     <script src="js/main.js"></script>
 </body>
+
 </html>

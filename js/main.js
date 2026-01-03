@@ -18,7 +18,7 @@ let sectionChart = null;
 let oddEvenChart = null;
 
 // Initialize on page load
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     console.log('Initializing Lotto Analysis System...');
     loadData();
 });
@@ -48,7 +48,7 @@ async function loadData() {
         }
 
         const csvText = await response.text();
-        
+
         // Parse CSV using analyzer
         analyzer = new LottoAnalyzer();
         analyzer.loadData(csvText);
@@ -60,7 +60,7 @@ async function loadData() {
 
         // Update UI with current data info
         updateDataInfo();
-        
+
         // 업데이트 필요 여부 확인
         checkForUpdates();
 
@@ -131,33 +131,19 @@ async function loadData() {
  * Find the latest CSV file in data directory
  */
 async function findLatestCSV() {
-    // Common CSV file patterns
-    const patterns = [
-        'data/lotto_1_*.csv',
-        'data/lotto_*.csv',
-        './data/lotto_*.csv',
-        '../data/lotto_*.csv'
-    ];
+    // Always use the fixed filename lotto_data.csv
+    const csvFile = 'data/lotto_data.csv';
 
-    // Try common filenames first (most likely)
-    const commonFiles = [];
-    for (let round = 1300; round >= 1100; round--) {
-        commonFiles.push(`data/lotto_1_${round}.csv`);
-    }
-
-    // Try each common file
-    for (const file of commonFiles) {
-        try {
-            const response = await fetch(file, { method: 'HEAD' });
-            if (response.ok) {
-                return { latest: file, found: true };
-            }
-        } catch (e) {
-            // Continue to next file
+    try {
+        const response = await fetch(csvFile, { method: 'HEAD' });
+        if (response.ok) {
+            return { latest: csvFile, found: true };
         }
+    } catch (e) {
+        console.error('Error loading lotto_data.csv:', e);
     }
 
-    // If no common file found, return null (will fallback to LOTTO_DATA)
+    // If file not found, return null (will fallback to LOTTO_DATA)
     return { latest: null, found: false };
 }
 
@@ -168,20 +154,20 @@ function updateDataInfo() {
     if (!analyzer || !analyzer.data || analyzer.data.length === 0) return;
 
     const lastRound = analyzer.data[analyzer.data.length - 1];
-    
+
     // 자동 회차 계산 기능 사용
     let nextRoundInfo;
     if (typeof getNextRoundInfo !== 'undefined') {
         nextRoundInfo = getNextRoundInfo(analyzer);
     }
-    
+
     const nextRound = nextRoundInfo ? nextRoundInfo.nextRound : lastRound.round + 1;
-    
+
     // Update any data info displays if they exist
     const dataInfoEl = document.getElementById('data-info');
     if (dataInfoEl) {
         if (nextRoundInfo) {
-            const drawInfo = nextRoundInfo.isDrawToday 
+            const drawInfo = nextRoundInfo.isDrawToday
                 ? ` (오늘 추첨일!)`
                 : ` (${nextRoundInfo.daysUntilDraw}일 후)`;
             dataInfoEl.textContent = `최신 회차: ${lastRound.round}회 (${lastRound.date}) → 예측 대상: ${nextRound}회${drawInfo}`;
@@ -189,7 +175,7 @@ function updateDataInfo() {
             dataInfoEl.textContent = `최신 회차: ${lastRound.round}회 (${lastRound.date}) → 예측 대상: ${nextRound}회`;
         }
     }
-    
+
     // 다음 회차 정보를 전역 변수로 저장 (다른 함수에서 사용)
     window.nextRoundInfo = nextRoundInfo || { nextRound: nextRound };
 }
@@ -199,34 +185,34 @@ function updateDataInfo() {
  */
 function checkForUpdates() {
     if (!analyzer || !analyzer.data || analyzer.data.length === 0) return;
-    
+
     const lastRound = analyzer.data[analyzer.data.length - 1];
     const lastRoundNum = lastRound.round;
     const lastDateStr = lastRound.date;
-    
+
     // 마지막 회차 날짜 파싱
     const [year, month, day] = lastDateStr.split('.').map(Number);
     const lastDate = new Date(year, month - 1, day, 21, 0, 0, 0);
     const now = new Date();
-    
+
     // 마지막 추첨일 이후 경과한 주 수 계산 (토요일 기준)
     let expectedLatestRound = lastRoundNum;
     let currentDate = new Date(lastDate);
-    
+
     // 마지막 추첨일 다음 토요일부터 시작
     currentDate.setDate(currentDate.getDate() + 7);
-    
+
     // 현재 날짜 이전의 모든 토요일을 세어서 예상 최신 회차 계산
     while (currentDate <= now) {
         expectedLatestRound++;
         currentDate.setDate(currentDate.getDate() + 7);
     }
-    
+
     const missingRounds = expectedLatestRound - lastRoundNum;
-    
+
     const updateCard = document.getElementById('update-info-card');
     const statusEl = document.getElementById('update-status');
-    
+
     if (missingRounds > 0) {
         // 누락된 회차가 있음
         updateCard.style.display = 'block';
@@ -260,36 +246,36 @@ function checkAndUpdateData() {
         showMessage('데이터가 로드되지 않았습니다.', 'error');
         return;
     }
-    
+
     const lastRound = analyzer.data[analyzer.data.length - 1];
     const lastRoundNum = lastRound.round;
     const lastDateStr = lastRound.date;
-    
+
     // 마지막 회차 날짜 파싱
     const [year, month, day] = lastDateStr.split('.').map(Number);
     const lastDate = new Date(year, month - 1, day, 21, 0, 0, 0);
     const now = new Date();
-    
+
     // 마지막 추첨일 이후 경과한 주 수 계산 (토요일 기준)
     let expectedLatestRound = lastRoundNum;
     let currentDate = new Date(lastDate);
-    
+
     // 마지막 추첨일 다음 토요일부터 시작
     currentDate.setDate(currentDate.getDate() + 7);
-    
+
     // 현재 날짜 이전의 모든 토요일을 세어서 예상 최신 회차 계산
     while (currentDate <= now) {
         expectedLatestRound++;
         currentDate.setDate(currentDate.getDate() + 7);
     }
-    
+
     const missingRounds = expectedLatestRound - lastRoundNum;
-    
+
     if (missingRounds <= 0) {
         showMessage('이미 최신 데이터입니다!', 'success');
         return;
     }
-    
+
     // 누락된 회차 입력 UI 표시
     showMissingRoundsInput(lastRoundNum, expectedLatestRound, missingRounds);
 }
@@ -314,7 +300,7 @@ function showMissingRoundsInput(startRound, endRound, count) {
         z-index: 10000;
         padding: 20px;
     `;
-    
+
     const modalContent = document.createElement('div');
     modalContent.style.cssText = `
         background: white;
@@ -326,7 +312,7 @@ function showMissingRoundsInput(startRound, endRound, count) {
         overflow-y: auto;
         box-shadow: 0 10px 25px rgba(0,0,0,0.2);
     `;
-    
+
     let html = `
         <h2 style="margin: 0 0 16px 0; color: var(--primary-color);">📥 누락된 회차 데이터 입력</h2>
         <p style="margin: 0 0 20px 0; color: var(--text-secondary);">
@@ -334,7 +320,7 @@ function showMissingRoundsInput(startRound, endRound, count) {
         </p>
         <div id="rounds-input-container" style="margin-bottom: 20px;">
     `;
-    
+
     // 각 회차별 입력 필드 생성
     for (let round = startRound + 1; round <= endRound; round++) {
         html += `
@@ -351,7 +337,7 @@ function showMissingRoundsInput(startRound, endRound, count) {
                 <div style="display: grid; grid-template-columns: 1fr 6fr; gap: 8px; align-items: center;">
                     <label style="font-size: 0.875rem;">번호:</label>
                     <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                        ${[1,2,3,4,5,6].map(i => `
+                        ${[1, 2, 3, 4, 5, 6].map(i => `
                             <input type="number" class="round-number" data-round="${round}" data-index="${i}" 
                                    min="1" max="45" placeholder="${i}" 
                                    style="width: 50px; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; text-align: center;">
@@ -365,7 +351,7 @@ function showMissingRoundsInput(startRound, endRound, count) {
             </div>
         `;
     }
-    
+
     html += `
         </div>
         <div style="display: flex; gap: 12px; justify-content: flex-end;">
@@ -377,11 +363,11 @@ function showMissingRoundsInput(startRound, endRound, count) {
             </button>
         </div>
     `;
-    
+
     modalContent.innerHTML = html;
     modal.appendChild(modalContent);
     document.body.appendChild(modal);
-    
+
     // 모달 외부 클릭 시 닫기
     modal.addEventListener('click', (e) => {
         if (e.target === modal) {
@@ -406,12 +392,12 @@ function closeUpdateModal() {
 function generateUpdateCSV() {
     const roundsData = [];
     const inputGroups = document.querySelectorAll('.round-input-group');
-    
+
     inputGroups.forEach(group => {
         const roundInput = group.querySelector('.round-date');
         const round = parseInt(roundInput.dataset.round);
         const date = roundInput.value.trim();
-        
+
         const numbers = [];
         for (let i = 1; i <= 6; i++) {
             const numInput = group.querySelector(`.round-number[data-index="${i}"]`);
@@ -422,29 +408,29 @@ function generateUpdateCSV() {
             }
             numbers.push(num);
         }
-        
+
         const bonusInput = group.querySelector('.round-bonus');
         const bonus = parseInt(bonusInput.value);
         if (!bonus || bonus < 1 || bonus > 45) {
             showMessage(`${round}회차의 보너스 번호를 올바르게 입력해주세요. (1-45)`, 'error');
             return;
         }
-        
+
         if (!date || !/^\d{4}\.\d{2}\.\d{2}$/.test(date)) {
             showMessage(`${round}회차의 날짜를 올바르게 입력해주세요. (YYYY.MM.DD 형식)`, 'error');
             return;
         }
-        
+
         // 중복 번호 체크
         const allNumbers = [...numbers, bonus];
         if (new Set(allNumbers).size !== allNumbers.length) {
             showMessage(`${round}회차에 중복된 번호가 있습니다.`, 'error');
             return;
         }
-        
+
         // 번호 정렬 (보너스 제외)
         numbers.sort((a, b) => a - b);
-        
+
         roundsData.push({
             round: round,
             date: date,
@@ -452,45 +438,44 @@ function generateUpdateCSV() {
             bonus: bonus
         });
     });
-    
+
     // 기존 CSV 데이터 가져오기
     if (!analyzer || !analyzer.data || analyzer.data.length === 0) {
         showMessage('기존 데이터를 찾을 수 없습니다.', 'error');
         return;
     }
-    
+
     // 기존 CSV 헤더와 데이터
     const header = '회차,날짜,번호1,번호2,번호3,번호4,번호5,번호6,보너스\n';
     let csvContent = header;
-    
+
     // 기존 데이터 추가
     analyzer.data.forEach(row => {
         csvContent += `${row.round},${row.date},${row.numbers.join(',')},${row.bonus}\n`;
     });
-    
+
     // 새 데이터 추가 (회차 순으로 정렬)
     roundsData.sort((a, b) => a.round - b.round);
     roundsData.forEach(row => {
         csvContent += `${row.round},${row.date},${row.numbers.join(',')},${row.bonus}\n`;
     });
-    
+
     // CSV 파일 다운로드
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
-    const latestRound = Math.max(...roundsData.map(r => r.round));
-    const filename = `lotto_1_${latestRound}.csv`;
-    
+    const filename = 'lotto_data.csv';
+
     link.setAttribute('href', url);
     link.setAttribute('download', filename);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
+
     showMessage(`${roundsData.length}개 회차 데이터가 포함된 CSV 파일이 다운로드되었습니다.`, 'success');
     closeUpdateModal();
-    
+
     // 파일 다운로드 후 페이지 새로고침 안내
     setTimeout(() => {
         if (confirm('새 CSV 파일을 data 폴더에 저장하셨나요? 저장하셨다면 페이지를 새로고침하여 업데이트된 데이터를 로드할 수 있습니다.')) {
@@ -709,11 +694,11 @@ function runAnalysis() {
     }
 
     const lastRound = analyzer.data[analyzer.data.length - 1].round;
-    
+
     try {
         // 선택된 방법에 따라 분석 실행
         currentAnalysis = runAnalysisByMethod(method, lastRound, rounds);
-        
+
         if (isSlowMethod) {
             showProgress(false);
         }
@@ -778,7 +763,7 @@ function runNextRoundPrediction() {
     try {
         // 선택된 방법에 따라 분석 실행
         currentAnalysis = runAnalysisByMethod(method, lastRound, rounds);
-        
+
         if (isSlowMethod) {
             showProgress(false);
         }
@@ -818,7 +803,7 @@ function runNextRoundPrediction() {
  * Run analysis by selected method
  */
 function runAnalysisByMethod(method, upToRound, rounds) {
-    switch(method) {
+    switch (method) {
         case 'entropy':
             return runEntropyAnalysis(upToRound, rounds);
         case 'topsis':
@@ -850,7 +835,7 @@ function runEntropyAnalysis(upToRound, rounds) {
 function runTOPSISAnalysis(upToRound, rounds) {
     const analysisData = analyzer.data.filter(d => d.round <= upToRound);
     analyzer.params.recentWindow = rounds;
-    
+
     // 각 번호의 특성 계산
     const numberFeatures = [];
     for (let num = 1; num <= 45; num++) {
@@ -1030,13 +1015,13 @@ function runEnsembleAnalysis(upToRound, rounds) {
  */
 function runMathConstantsAnalysis(upToRound, rounds) {
     const analysisData = analyzer.data.filter(d => d.round <= upToRound);
-    
+
     // 수학적 상수 분석 실행
     const mathScores = MathConstantsAnalysis.analyze(analysisData, rounds);
-    
+
     // 결과를 표준 형식으로 변환
     const result = MathConstantsAnalysis.formatResults(mathScores);
-    
+
     // 수학적 상수 분석 방법들의 가중치 표시를 위한 정보 추가
     const methods = MathConstantsAnalysis.getMethods();
     const methodWeights = {
@@ -1053,7 +1038,7 @@ function runMathConstantsAnalysis(upToRound, rounds) {
         primeBalance: 0.10,
         benfordDeviation: 0.10
     };
-    
+
     return {
         predictions: result.predictions,
         weights: Object.values(methodWeights),
@@ -1227,7 +1212,7 @@ function displayWeights(analysis) {
         const ensembleInfo = document.createElement('div');
         ensembleInfo.style.cssText = 'margin-top: 20px; padding: 16px; background: #f0f9ff; border-radius: 8px;';
         ensembleInfo.innerHTML = '<strong>앙상블 가중치:</strong><br>';
-        
+
         Object.entries(analysis.methodConfig).forEach(([method, config]) => {
             if (config.enabled) {
                 const methodName = getMethodName(method);
@@ -1309,7 +1294,7 @@ function getSelectedBacktestMethod() {
 function toggleBacktestMode() {
     const mode = document.getElementById('backtest-mode').value;
     const wfConfig = document.getElementById('walkforward-config');
-    
+
     if (mode === 'walkforward') {
         wfConfig.style.display = 'block';
     } else {
@@ -1327,7 +1312,7 @@ function runBacktest() {
     }
 
     const mode = document.getElementById('backtest-mode').value;
-    
+
     if (mode === 'walkforward') {
         runWalkForwardBacktest();
     } else {
@@ -1394,7 +1379,7 @@ function runStandardBacktest() {
     displayBacktestChart(currentBacktest);
     displayHitDistribution(currentBacktest);
     displayBacktestTable(currentBacktest);
-    
+
     showMessage(`${getMethodName(method)} 백테스트가 완료되었습니다.`, 'success');
 }
 
@@ -1441,7 +1426,7 @@ function runWalkForwardBacktest() {
         // trainData의 마지막 회차까지로 분석
         const lastTrainRound = trainData[trainData.length - 1].round;
         const analysis = runAnalysisByMethod(method, lastTrainRound, rounds);
-        
+
         // 상위 10개 번호 반환
         return analysis.predictions.slice(0, 10).map(p => p.number);
     };
@@ -1512,7 +1497,7 @@ function runWalkForwardBacktest() {
     displayBacktestChart(currentBacktest);
     displayHitDistribution(currentBacktest);
     displayBacktestTable(currentBacktest);
-    
+
     showMessage(`Walk-Forward 백테스트가 완료되었습니다. (${wfResult.totalFolds}개 폴드)`, 'success');
 }
 
@@ -1530,7 +1515,7 @@ function displayBacktestStats(backtest) {
     // 주요 성과 카드 (강조)
     const mainStats = document.createElement('div');
     mainStats.style.cssText = 'display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;';
-    
+
     const createStatCard = (label, value, description, highlight = false, color = '#3b82f6') => {
         const card = document.createElement('div');
         card.style.cssText = `
@@ -1540,7 +1525,7 @@ function displayBacktestStats(backtest) {
             padding: 20px;
             text-align: center;
         `;
-        
+
         const valueDiv = document.createElement('div');
         valueDiv.style.cssText = `
             font-size: 2rem;
@@ -1549,7 +1534,7 @@ function displayBacktestStats(backtest) {
             margin-bottom: 8px;
         `;
         valueDiv.textContent = value;
-        
+
         const labelDiv = document.createElement('div');
         labelDiv.style.cssText = `
             font-size: 1rem;
@@ -1558,7 +1543,7 @@ function displayBacktestStats(backtest) {
             margin-bottom: 4px;
         `;
         labelDiv.textContent = label;
-        
+
         const descDiv = document.createElement('div');
         descDiv.style.cssText = `
             font-size: 0.8rem;
@@ -1566,11 +1551,11 @@ function displayBacktestStats(backtest) {
             line-height: 1.4;
         `;
         descDiv.textContent = description;
-        
+
         card.appendChild(valueDiv);
         card.appendChild(labelDiv);
         if (description) card.appendChild(descDiv);
-        
+
         return card;
     };
 
@@ -1632,7 +1617,7 @@ function displayBacktestStats(backtest) {
     // 상세 지표 섹션
     const detailSection = document.createElement('div');
     detailSection.style.cssText = 'background: #f8fafc; padding: 16px; border-radius: 12px; margin-top: 16px;';
-    
+
     const detailHeader = document.createElement('h3');
     detailHeader.style.cssText = 'margin: 0 0 12px 0; font-size: 1rem; color: #475569;';
     detailHeader.textContent = '📈 상세 성과 지표';
@@ -1683,22 +1668,22 @@ function displayBacktestStats(backtest) {
             padding: 12px;
             text-align: center;
         `;
-        
+
         const valueDiv = document.createElement('div');
         valueDiv.style.cssText = 'font-size: 1.1rem; font-weight: 600; color: #1e293b; margin-bottom: 4px;';
         valueDiv.textContent = stat.value;
-        
+
         const labelDiv = document.createElement('div');
         labelDiv.style.cssText = 'font-size: 0.85rem; color: #64748b; margin-bottom: 2px;';
         labelDiv.textContent = stat.label;
-        
+
         if (stat.desc) {
             const descDiv = document.createElement('div');
             descDiv.style.cssText = 'font-size: 0.75rem; color: #94a3b8;';
             descDiv.textContent = stat.desc;
             card.appendChild(descDiv);
         }
-        
+
         card.appendChild(labelDiv);
         card.appendChild(valueDiv);
         detailGrid.appendChild(card);
@@ -1910,7 +1895,7 @@ function runOptimization() {
     // 백테스트 함수 생성
     const backtestFunction = (params) => {
         const rounds = params.recentWindow;
-        
+
         // 분석 함수
         const analysisFunction = (upToRound) => {
             return runAnalysisByMethod(method, upToRound, rounds);
@@ -1918,13 +1903,13 @@ function runOptimization() {
 
         // 백테스트 실행
         const result = backtester.run(startRound, endRound, 10, method, analysisFunction, null);
-        
+
         // metrics.js로 상세 지표 계산
         if (typeof calculateMetrics !== 'undefined' && result.results) {
             const detailedMetrics = calculateMetrics(result.results);
             result.statistics = { ...result.statistics, ...detailedMetrics };
         }
-        
+
         return result;
     };
 
@@ -2030,7 +2015,7 @@ function displayOptimizationResults(result) {
     const top5 = result.allResults.slice(0, 5);
     top5.forEach((item, idx) => {
         if (item.error) return;
-        
+
         const metrics = item.metrics || {};
         const row = document.createElement('tr');
         row.style.cssText = idx === 0 ? 'background: #f0f9ff;' : '';
@@ -2054,9 +2039,9 @@ function displayOptimizationResults(result) {
             border-radius: 12px;
             padding: 20px;
         `;
-        
+
         let sensitivityHTML = '<h3 style="margin: 0 0 16px 0;">📊 파라미터 민감도 분석</h3>';
-        
+
         Object.keys(result.paramSensitivity).forEach(paramName => {
             const sens = result.paramSensitivity[paramName];
             sensitivityHTML += `
@@ -2068,14 +2053,14 @@ function displayOptimizationResults(result) {
                     </div>
                     <div style="margin-top: 8px;">
                         ${Object.keys(sens.valueScores).map(value => {
-                            const vs = sens.valueScores[value];
-                            return `${value}: ${vs.mean.toFixed(4)} (σ=${vs.std.toFixed(4)}, n=${vs.count})`;
-                        }).join(', ')}
+                const vs = sens.valueScores[value];
+                return `${value}: ${vs.mean.toFixed(4)} (σ=${vs.std.toFixed(4)}, n=${vs.count})`;
+            }).join(', ')}
                     </div>
                 </div>
             `;
         });
-        
+
         sensitivityCard.innerHTML = sensitivityHTML;
         container.appendChild(sensitivityCard);
     }
@@ -2105,8 +2090,8 @@ function exportBacktestResults() {
 }
 
 /**
- * 조합 일치 테스트 실행
- * 지정된 회차까지의 데이터로 분석하여 조합을 생성하고,
+ * 조합 일치 테스트 실행 (범위 테스트)
+ * 시작~종료 회차 범위에서 각 회차까지의 데이터로 분석하여 조합을 생성하고,
  * 다음 회차 당첨번호와 일치하는 조합이 나올 때까지 시도 횟수를 계산
  */
 function runComboMatchTest() {
@@ -2115,30 +2100,36 @@ function runComboMatchTest() {
         return;
     }
 
-    const testRound = parseInt(document.getElementById('combo-test-round').value);
+    const startRound = parseInt(document.getElementById('combo-test-start').value);
+    const endRound = parseInt(document.getElementById('combo-test-end').value);
     const topN = parseInt(document.getElementById('combo-test-topn').value);
     const maxAttempts = parseInt(document.getElementById('combo-test-max').value);
     const targetHits = parseInt(document.getElementById('combo-test-target').value);
     const method = document.getElementById('combo-test-method').value;
 
-    // 다음 회차 데이터 확인
-    const nextRound = testRound + 1;
-    const actualData = analyzer.data.find(d => d.round === nextRound);
-    
-    if (!actualData) {
-        alert(`${nextRound}회차 데이터가 없습니다. 테스트 기준 회차를 조정해주세요.`);
+    if (startRound >= endRound) {
+        alert('시작 회차는 종료 회차보다 작아야 합니다.');
         return;
     }
 
-    const actualNumbers = actualData.numbers;
-    
+    // 종료 회차 다음 데이터 확인
+    const lastTestRound = endRound;
+    const nextRoundData = analyzer.data.find(d => d.round === lastTestRound + 1);
+
+    if (!nextRoundData) {
+        alert(`${lastTestRound + 1}회차 데이터가 없습니다. 종료 회차를 조정해주세요.`);
+        return;
+    }
+
+    const totalRounds = endRound - startRound + 1;
+
     // 결과 표시 영역
     const resultsContainer = document.getElementById('combo-test-results');
     resultsContainer.innerHTML = `
         <div style="text-align: center; padding: 20px;">
             <div class="loading-spinner"></div>
             <p style="margin-top: 10px; color: var(--text-secondary);">조합 일치 테스트 진행 중...</p>
-            <p id="combo-test-progress" style="font-size: 0.875rem; color: #64748b;">0 / ${maxAttempts.toLocaleString()} 시도</p>
+            <p id="combo-test-progress" style="font-size: 0.875rem; color: #64748b;">0 / ${totalRounds} 회차 테스트 중</p>
         </div>
     `;
 
@@ -2146,15 +2137,15 @@ function runComboMatchTest() {
     showProgress(true, {
         message: '조합 일치 테스트 진행 중...',
         progress: 0,
-        detail: `${nextRound}회차 당첨번호와 일치하는 조합 찾는 중...`
+        detail: `${startRound}~${endRound}회차 테스트 준비 중...`
     });
 
     // 비동기로 실행 (UI 블로킹 방지)
-    setTimeout(() => {
+    setTimeout(async () => {
         try {
-            const result = executeComboMatchTest(testRound, topN, maxAttempts, targetHits, method, actualNumbers);
+            const results = await executeComboMatchTestRange(startRound, endRound, topN, maxAttempts, targetHits, method);
             showProgress(false);
-            displayComboMatchResults(result, testRound, nextRound, actualNumbers, targetHits);
+            displayComboMatchResultsRange(results, startRound, endRound, targetHits, method);
         } catch (error) {
             showProgress(false);
             resultsContainer.innerHTML = `
@@ -2167,21 +2158,114 @@ function runComboMatchTest() {
 }
 
 /**
- * 조합 일치 테스트 실행 (실제 로직)
+ * 범위 테스트 실행
  */
-function executeComboMatchTest(testRound, topN, maxAttempts, targetHits, method, actualNumbers) {
+async function executeComboMatchTestRange(startRound, endRound, topN, maxAttempts, targetHits, method) {
     const rounds = analyzer.params.recentWindow || 50;
-    
-    // 분석 실행 (testRound까지의 데이터만 사용)
-    const analysis = runAnalysisByMethod(method, testRound, rounds);
-    
-    if (!analysis || !analysis.predictions) {
-        throw new Error('분석 결과를 가져올 수 없습니다.');
+    const results = {
+        roundResults: [],
+        summary: {
+            totalRounds: 0,
+            successCount: 0,
+            totalAttempts: 0,
+            avgAttempts: 0,
+            avgBestHits: 0,
+            hitDistribution: { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 },
+            firstMatchAvg: { 3: [], 4: [], 5: [], 6: [] },
+            poolMatchAvg: 0
+        },
+        method: method,
+        topN: topN,
+        maxAttempts: maxAttempts
+    };
+
+    const totalRounds = endRound - startRound + 1;
+    const progressEl = document.getElementById('combo-test-progress');
+
+    for (let testRound = startRound; testRound <= endRound; testRound++) {
+        const currentIdx = testRound - startRound + 1;
+
+        // 진행 상황 업데이트
+        if (progressEl) {
+            progressEl.textContent = `${currentIdx} / ${totalRounds} 회차 테스트 중 (${testRound}회차)`;
+        }
+        updateProgress({
+            progress: (currentIdx / totalRounds) * 100,
+            detail: `${testRound}회차 테스트 중... (${currentIdx}/${totalRounds})`
+        });
+
+        // 다음 회차 데이터 확인
+        const nextRound = testRound + 1;
+        const actualData = analyzer.data.find(d => d.round === nextRound);
+
+        if (!actualData) {
+            continue;
+        }
+
+        const actualNumbers = actualData.numbers;
+
+        // 분석 실행
+        const analysis = runAnalysisByMethod(method, testRound, rounds);
+
+        if (!analysis || !analysis.predictions) {
+            continue;
+        }
+
+        // 상위 N개 번호 추출
+        const topNumbers = analysis.predictions.slice(0, topN).map(p => p.number);
+
+        // 번호 풀과 실제 당첨번호 일치 개수
+        const poolMatches = topNumbers.filter(n => actualNumbers.includes(n)).length;
+
+        // 단일 회차 테스트 실행
+        const roundResult = executeSingleRoundTest(topNumbers, actualNumbers, maxAttempts, targetHits);
+        roundResult.round = testRound;
+        roundResult.nextRound = nextRound;
+        roundResult.actualNumbers = actualNumbers;
+        roundResult.topNumbers = topNumbers;
+        roundResult.poolMatches = poolMatches;
+
+        results.roundResults.push(roundResult);
+
+        // 요약 통계 업데이트
+        results.summary.totalRounds++;
+        if (roundResult.found) {
+            results.summary.successCount++;
+        }
+        results.summary.totalAttempts += roundResult.attempts;
+        results.summary.avgBestHits += roundResult.bestHits;
+        results.summary.poolMatchAvg += poolMatches;
+
+        // 히트 분포 누적
+        for (let h = 0; h <= 6; h++) {
+            results.summary.hitDistribution[h] += roundResult.hitDistribution[h];
+        }
+
+        // 첫 매치 시점 기록
+        for (let h = 3; h <= 6; h++) {
+            if (roundResult.firstMatchByHits[h] > 0) {
+                results.summary.firstMatchAvg[h].push(roundResult.firstMatchByHits[h]);
+            }
+        }
+
+        // UI 업데이트를 위한 짧은 대기
+        await new Promise(resolve => setTimeout(resolve, 10));
     }
 
-    // 상위 N개 번호 추출
-    const topNumbers = analysis.predictions.slice(0, topN).map(p => p.number);
-    
+    // 평균 계산
+    if (results.summary.totalRounds > 0) {
+        results.summary.avgAttempts = results.summary.totalAttempts / results.summary.totalRounds;
+        results.summary.avgBestHits = results.summary.avgBestHits / results.summary.totalRounds;
+        results.summary.poolMatchAvg = results.summary.poolMatchAvg / results.summary.totalRounds;
+    }
+
+    return results;
+}
+
+/**
+ * 단일 회차 조합 일치 테스트 (범위 테스트용)
+ */
+function executeSingleRoundTest(topNumbers, actualNumbers, maxAttempts, targetHits) {
     // 결과 저장
     const results = {
         attempts: 0,
@@ -2190,42 +2274,28 @@ function executeComboMatchTest(testRound, topN, maxAttempts, targetHits, method,
         bestHits: 0,
         bestCombination: null,
         hitDistribution: { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 },
-        firstMatchByHits: { 3: -1, 4: -1, 5: -1, 6: -1 },
-        topNumbers: topNumbers,
-        method: method
+        firstMatchByHits: { 3: -1, 4: -1, 5: -1, 6: -1 }
     };
 
-    const progressEl = document.getElementById('combo-test-progress');
-    const updateInterval = Math.max(1, Math.floor(maxAttempts / 100)); // 1% 단위로 업데이트
-    
     // 조합 생성 및 테스트
     for (let i = 0; i < maxAttempts; i++) {
         results.attempts++;
-        
-        // 진행 상황 업데이트
-        if (i % updateInterval === 0 && progressEl) {
-            progressEl.textContent = `${i.toLocaleString()} / ${maxAttempts.toLocaleString()} 시도`;
-            updateProgress({
-                progress: (i / maxAttempts) * 100,
-                detail: `${i.toLocaleString()}번 시도 중...`
-            });
-        }
-        
+
         // 무작위 조합 생성 (topNumbers에서 6개 선택)
         const combination = generateRandomCombination(topNumbers);
-        
+
         // 일치 개수 계산
         const hits = countMatches(combination, actualNumbers);
-        
+
         // 히트 분포 업데이트
         results.hitDistribution[hits]++;
-        
+
         // 최고 기록 갱신
         if (hits > results.bestHits) {
             results.bestHits = hits;
             results.bestCombination = [...combination];
         }
-        
+
         // 각 일치 개수별 첫 번째 발생 기록
         if (hits >= 3 && results.firstMatchByHits[3] === -1) {
             results.firstMatchByHits[3] = i + 1;
@@ -2239,7 +2309,7 @@ function executeComboMatchTest(testRound, topN, maxAttempts, targetHits, method,
         if (hits >= 6 && results.firstMatchByHits[6] === -1) {
             results.firstMatchByHits[6] = i + 1;
         }
-        
+
         // 목표 달성 확인
         if (hits >= targetHits) {
             results.found = true;
@@ -2248,7 +2318,7 @@ function executeComboMatchTest(testRound, topN, maxAttempts, targetHits, method,
             break;
         }
     }
-    
+
     return results;
 }
 
@@ -2268,14 +2338,174 @@ function countMatches(arr1, arr2) {
 }
 
 /**
- * 조합 일치 테스트 결과 표시
+ * 범위 조합 일치 테스트 결과 표시
+ */
+function displayComboMatchResultsRange(results, startRound, endRound, targetHits, method) {
+    const resultsContainer = document.getElementById('combo-test-results');
+
+    const hitLabels = { 3: '5등', 4: '4등', 5: '3등', 6: '1등' };
+    const successRate = results.summary.totalRounds > 0
+        ? (results.summary.successCount / results.summary.totalRounds * 100).toFixed(1)
+        : 0;
+
+    // 각 일치 개수별 평균 시도 횟수 계산
+    const avgFirstMatch = {};
+    for (let h = 3; h <= 6; h++) {
+        const arr = results.summary.firstMatchAvg[h];
+        avgFirstMatch[h] = arr.length > 0
+            ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length)
+            : -1;
+    }
+
+    let html = `
+        <div style="background: white; border: 1px solid var(--border-color); border-radius: 12px; padding: 20px;">
+            <h3 style="margin: 0 0 16px 0; color: var(--primary-color);">📊 범위 테스트 결과 (${startRound}~${endRound}회차)</h3>
+            
+            <!-- 테스트 정보 -->
+            <div style="background: #f8fafc; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
+                    <div>
+                        <strong style="color: var(--text-secondary);">테스트 회차:</strong>
+                        <span style="color: var(--primary-color); font-weight: 600;">${startRound}~${endRound}회 (${results.summary.totalRounds}개)</span>
+                    </div>
+                    <div>
+                        <strong style="color: var(--text-secondary);">분석 방법:</strong>
+                        <span style="color: var(--primary-color);">${getMethodName(method)}</span>
+                    </div>
+                    <div>
+                        <strong style="color: var(--text-secondary);">예측 번호 풀:</strong>
+                        <span style="color: var(--primary-color);">상위 ${results.topN}개</span>
+                    </div>
+                    <div>
+                        <strong style="color: var(--text-secondary);">회차당 시도:</strong>
+                        <span style="color: var(--primary-color);">${results.maxAttempts.toLocaleString()}회</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 주요 통계 -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 16px;">
+                <div style="background: ${successRate > 0 ? '#dcfce7' : '#fef3c7'}; padding: 16px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 1.5rem; font-weight: 700; color: ${successRate > 0 ? '#16a34a' : '#d97706'};">
+                        ${successRate}%
+                    </div>
+                    <div style="font-size: 0.875rem; color: var(--text-secondary);">목표 달성률</div>
+                    <div style="font-size: 0.75rem; color: #64748b;">(${results.summary.successCount}/${results.summary.totalRounds})</div>
+                </div>
+                <div style="background: #eff6ff; padding: 16px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 1.5rem; font-weight: 700; color: var(--primary-color);">
+                        ${Math.round(results.summary.avgAttempts).toLocaleString()}
+                    </div>
+                    <div style="font-size: 0.875rem; color: var(--text-secondary);">평균 시도 횟수</div>
+                </div>
+                <div style="background: #f0fdf4; padding: 16px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 1.5rem; font-weight: 700; color: #16a34a;">
+                        ${results.summary.avgBestHits.toFixed(1)}개
+                    </div>
+                    <div style="font-size: 0.875rem; color: var(--text-secondary);">평균 최대 일치</div>
+                </div>
+                <div style="background: #fef3c7; padding: 16px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 1.5rem; font-weight: 700; color: #d97706;">
+                        ${results.summary.poolMatchAvg.toFixed(1)}개
+                    </div>
+                    <div style="font-size: 0.875rem; color: var(--text-secondary);">번호풀 평균일치</div>
+                </div>
+            </div>
+            
+            <!-- 각 일치 개수별 평균 시도 횟수 -->
+            <div style="margin-bottom: 16px;">
+                <strong style="color: var(--text-secondary);">일치 개수별 평균 첫 발생 시도 횟수:</strong>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin-top: 8px;">
+                    ${[3, 4, 5, 6].map(hits => {
+        const avg = avgFirstMatch[hits];
+        const count = results.summary.firstMatchAvg[hits].length;
+        return `
+                            <div style="background: ${avg > 0 ? '#dcfce7' : '#f1f5f9'}; padding: 12px; border-radius: 6px; text-align: center;">
+                                <div style="font-weight: 600; color: ${avg > 0 ? '#16a34a' : '#94a3b8'};">
+                                    ${hits}개+ (${hitLabels[hits] || ''})
+                                </div>
+                                <div style="font-size: 1.125rem; font-weight: 700; color: ${avg > 0 ? '#16a34a' : '#94a3b8'};">
+                                    ${avg > 0 ? avg.toLocaleString() + '회' : '-'}
+                                </div>
+                                <div style="font-size: 0.7rem; color: #64748b;">
+                                    (${count}/${results.summary.totalRounds}회 달성)
+                                </div>
+                            </div>
+                        `;
+    }).join('')}
+                </div>
+            </div>
+            
+            <!-- 전체 히트 분포 -->
+            <div style="margin-bottom: 16px;">
+                <strong style="color: var(--text-secondary);">전체 일치 개수 분포 (${results.summary.totalAttempts.toLocaleString()}회 시도):</strong>
+                <div style="margin-top: 8px;">
+                    ${[0, 1, 2, 3, 4, 5, 6].map(hits => {
+        const count = results.summary.hitDistribution[hits];
+        const percentage = results.summary.totalAttempts > 0 ? (count / results.summary.totalAttempts * 100).toFixed(3) : 0;
+        const maxWidth = Math.max(...Object.values(results.summary.hitDistribution));
+        const barWidth = maxWidth > 0 ? (count / maxWidth * 100) : 0;
+        const barColor = hits >= targetHits ? '#22c55e' : '#3b82f6';
+        return `
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                                <span style="width: 60px; font-size: 0.875rem;">${hits}개:</span>
+                                <div style="flex: 1; background: #e5e7eb; border-radius: 4px; height: 20px; overflow: hidden;">
+                                    <div style="background: ${barColor}; height: 100%; width: ${barWidth}%; transition: width 0.3s;"></div>
+                                </div>
+                                <span style="width: 130px; font-size: 0.75rem; text-align: right;">
+                                    ${count.toLocaleString()}회 (${percentage}%)
+                                </span>
+                            </div>
+                        `;
+    }).join('')}
+                </div>
+            </div>
+            
+            <!-- 회차별 상세 결과 (접이식) -->
+            <details style="margin-top: 16px;">
+                <summary style="cursor: pointer; font-weight: 600; color: var(--primary-color); padding: 8px 0;">
+                    📋 회차별 상세 결과 (클릭하여 펼치기)
+                </summary>
+                <div style="max-height: 400px; overflow-y: auto; margin-top: 12px;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 0.8rem;">
+                        <thead>
+                            <tr style="background: #f1f5f9;">
+                                <th style="padding: 8px; border: 1px solid #e2e8f0; text-align: center;">회차</th>
+                                <th style="padding: 8px; border: 1px solid #e2e8f0; text-align: center;">풀 일치</th>
+                                <th style="padding: 8px; border: 1px solid #e2e8f0; text-align: center;">최대 일치</th>
+                                <th style="padding: 8px; border: 1px solid #e2e8f0; text-align: center;">목표 달성</th>
+                                <th style="padding: 8px; border: 1px solid #e2e8f0; text-align: center;">시도 횟수</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${results.roundResults.map(r => `
+                                <tr style="background: ${r.found ? '#f0fdf4' : 'white'};">
+                                    <td style="padding: 8px; border: 1px solid #e2e8f0; text-align: center;">${r.round}→${r.nextRound}</td>
+                                    <td style="padding: 8px; border: 1px solid #e2e8f0; text-align: center;">${r.poolMatches}/6</td>
+                                    <td style="padding: 8px; border: 1px solid #e2e8f0; text-align: center; font-weight: 600; color: ${r.bestHits >= 3 ? '#16a34a' : '#64748b'};">${r.bestHits}개</td>
+                                    <td style="padding: 8px; border: 1px solid #e2e8f0; text-align: center;">${r.found ? '✅' : '❌'}</td>
+                                    <td style="padding: 8px; border: 1px solid #e2e8f0; text-align: center;">${r.found ? r.foundAttempt.toLocaleString() : r.attempts.toLocaleString()}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </details>
+        </div>
+    `;
+
+    resultsContainer.innerHTML = html;
+}
+
+/**
+ * 단일 회차 조합 일치 테스트 결과 표시 (기존 함수 유지)
  */
 function displayComboMatchResults(results, testRound, nextRound, actualNumbers, targetHits) {
     const resultsContainer = document.getElementById('combo-test-results');
-    
+
     const hitLabels = { 3: '5등', 4: '4등', 5: '3등', 6: '1등' };
     const foundClass = results.found ? 'var(--success-color)' : 'var(--warning-color)';
-    
+
     let html = `
         <div style="background: white; border: 1px solid var(--border-color); border-radius: 12px; padding: 20px;">
             <h3 style="margin: 0 0 16px 0; color: var(--primary-color);">📊 테스트 결과</h3>
@@ -2311,9 +2541,9 @@ function displayComboMatchResults(results, testRound, nextRound, actualNumbers, 
                 <strong style="color: var(--text-secondary);">예측 번호 풀 (상위 ${results.topNumbers.length}개):</strong>
                 <div style="display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap;">
                     ${results.topNumbers.map(n => {
-                        const isMatch = actualNumbers.includes(n);
-                        return `<div class="lotto-ball ${getBallColorClass(n)}" style="width: 32px; height: 32px; line-height: 32px; font-size: 0.75rem; ${isMatch ? 'box-shadow: 0 0 0 3px #22c55e;' : 'opacity: 0.7;'}">${n}</div>`;
-                    }).join('')}
+        const isMatch = actualNumbers.includes(n);
+        return `<div class="lotto-ball ${getBallColorClass(n)}" style="width: 32px; height: 32px; line-height: 32px; font-size: 0.75rem; ${isMatch ? 'box-shadow: 0 0 0 3px #22c55e;' : 'opacity: 0.7;'}">${n}</div>`;
+    }).join('')}
                 </div>
                 <small style="color: #64748b; display: block; margin-top: 4px;">
                     (초록색 테두리: 실제 당첨번호와 일치)
@@ -2350,9 +2580,9 @@ function displayComboMatchResults(results, testRound, nextRound, actualNumbers, 
                 <strong style="color: #16a34a;">🏆 최고 일치 조합 (${results.bestHits}개 일치):</strong>
                 <div style="display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap;">
                     ${results.bestCombination.map(n => {
-                        const isMatch = actualNumbers.includes(n);
-                        return `<div class="lotto-ball ${getBallColorClass(n)}" style="width: 36px; height: 36px; line-height: 36px; font-size: 0.875rem; ${isMatch ? 'box-shadow: 0 0 0 3px #22c55e;' : ''}">${n}</div>`;
-                    }).join('')}
+        const isMatch = actualNumbers.includes(n);
+        return `<div class="lotto-ball ${getBallColorClass(n)}" style="width: 36px; height: 36px; line-height: 36px; font-size: 0.875rem; ${isMatch ? 'box-shadow: 0 0 0 3px #22c55e;' : ''}">${n}</div>`;
+    }).join('')}
                 </div>
             </div>
             ` : ''}
@@ -2362,8 +2592,8 @@ function displayComboMatchResults(results, testRound, nextRound, actualNumbers, 
                 <strong style="color: var(--text-secondary);">일치 개수별 첫 발생 시점:</strong>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin-top: 8px;">
                     ${[3, 4, 5, 6].map(hits => {
-                        const attempt = results.firstMatchByHits[hits];
-                        return `
+        const attempt = results.firstMatchByHits[hits];
+        return `
                             <div style="background: ${attempt > 0 ? '#dcfce7' : '#f1f5f9'}; padding: 12px; border-radius: 6px; text-align: center;">
                                 <div style="font-weight: 600; color: ${attempt > 0 ? '#16a34a' : '#94a3b8'};">
                                     ${hits}개 일치 (${hitLabels[hits] || ''})
@@ -2373,7 +2603,7 @@ function displayComboMatchResults(results, testRound, nextRound, actualNumbers, 
                                 </div>
                             </div>
                         `;
-                    }).join('')}
+    }).join('')}
                 </div>
             </div>
             
@@ -2382,12 +2612,12 @@ function displayComboMatchResults(results, testRound, nextRound, actualNumbers, 
                 <strong style="color: var(--text-secondary);">일치 개수 분포:</strong>
                 <div style="margin-top: 8px;">
                     ${[0, 1, 2, 3, 4, 5, 6].map(hits => {
-                        const count = results.hitDistribution[hits];
-                        const percentage = results.attempts > 0 ? (count / results.attempts * 100).toFixed(2) : 0;
-                        const maxWidth = Math.max(...Object.values(results.hitDistribution));
-                        const barWidth = maxWidth > 0 ? (count / maxWidth * 100) : 0;
-                        const barColor = hits >= targetHits ? '#22c55e' : '#3b82f6';
-                        return `
+        const count = results.hitDistribution[hits];
+        const percentage = results.attempts > 0 ? (count / results.attempts * 100).toFixed(2) : 0;
+        const maxWidth = Math.max(...Object.values(results.hitDistribution));
+        const barWidth = maxWidth > 0 ? (count / maxWidth * 100) : 0;
+        const barColor = hits >= targetHits ? '#22c55e' : '#3b82f6';
+        return `
                             <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
                                 <span style="width: 60px; font-size: 0.875rem;">${hits}개 일치:</span>
                                 <div style="flex: 1; background: #e5e7eb; border-radius: 4px; height: 20px; overflow: hidden;">
@@ -2398,12 +2628,12 @@ function displayComboMatchResults(results, testRound, nextRound, actualNumbers, 
                                 </span>
                             </div>
                         `;
-                    }).join('')}
+    }).join('')}
                 </div>
             </div>
         </div>
     `;
-    
+
     resultsContainer.innerHTML = html;
 }
 
@@ -2630,7 +2860,7 @@ function generateCombinations() {
     // 조합 생성기 초기화
     const constraintsConfig = (typeof getDefaultConstraints !== 'undefined') ? getDefaultConstraints() : {};
     const scoringConfig = (typeof getDefaultScoringConfig !== 'undefined') ? getDefaultScoringConfig() : {};
-    
+
     const config = {
         poolSize: Math.max(12, poolSize), // 최소 12개 풀 사용
         maxAttempts: 50000,
@@ -2741,7 +2971,7 @@ function displayCombinations(combinations) {
             ball.className = `lotto-ball ${getBallColorClass(num)}`;
             ball.style.cssText = 'width: 32px; height: 32px; font-size: 0.875rem; line-height: 32px;';
             ball.textContent = num;
-            
+
             // 클릭하면 복사
             ball.style.cursor = 'pointer';
             ball.title = '클릭하여 복사';
@@ -2751,7 +2981,7 @@ function displayCombinations(combinations) {
                     showMessage('번호가 복사되었습니다!', 'success');
                 });
             };
-            
+
             numbersDiv.appendChild(ball);
         });
 
@@ -2787,9 +3017,480 @@ function updateAnalyzeRounds() {
 }
 
 // Add event listener for analyze rounds input
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     const analyzeRoundsInput = document.getElementById('analyze-rounds');
     if (analyzeRoundsInput) {
         analyzeRoundsInput.addEventListener('change', updateAnalyzeRounds);
     }
 });
+
+// ============================================================
+// 정밀 백테스팅 (Advanced Backtesting) 관련 함수들
+// ============================================================
+
+let advancedBacktester = null;
+let probabilityScorer = null;
+let probabilityStrategies = null;
+let currentAdvancedBacktest = null;
+let scorePerformanceChart = null;
+let calibrationChart = null;
+
+/**
+ * 정밀 백테스트 실행
+ */
+function runAdvancedBacktest() {
+    if (!analyzer || !analyzer.data) {
+        showMessage('데이터가 로드되지 않았습니다.', 'error');
+        return;
+    }
+
+    const startRound = parseInt(document.getElementById('adv-backtest-start').value);
+    const endRound = parseInt(document.getElementById('adv-backtest-end').value);
+    const topN = parseInt(document.getElementById('adv-backtest-topn').value);
+
+    if (startRound >= endRound) {
+        showMessage('시작 회차는 종료 회차보다 작아야 합니다.', 'error');
+        return;
+    }
+
+    // 활성화된 전략 확인
+    const enabledStrategies = {};
+    document.querySelectorAll('input[name="strategy"]').forEach(checkbox => {
+        enabledStrategies[checkbox.value] = checkbox.checked;
+    });
+
+    console.log(`[Advanced Backtest] Starting: ${startRound} - ${endRound}, topN: ${topN}`);
+    console.log('[Advanced Backtest] Enabled strategies:', enabledStrategies);
+
+    // 진행 표시
+    showProgress(true, {
+        message: '정밀 백테스트 진행 중...',
+        progress: 0,
+        detail: '초기화 중...'
+    });
+
+    // 약간의 지연 후 실행 (UI 업데이트를 위해)
+    setTimeout(() => {
+        try {
+            // 모듈 초기화
+            if (typeof ProbabilityScorer !== 'undefined') {
+                probabilityScorer = new ProbabilityScorer();
+            }
+
+            if (typeof AdvancedBacktester !== 'undefined') {
+                advancedBacktester = new AdvancedBacktester(analyzer.data);
+            }
+
+            if (typeof ProbabilityStrategies !== 'undefined') {
+                probabilityStrategies = new ProbabilityStrategies();
+                // 전략 활성화 상태 적용
+                Object.entries(enabledStrategies).forEach(([key, enabled]) => {
+                    probabilityStrategies.setStrategy(key, enabled);
+                });
+            }
+
+            if (!advancedBacktester) {
+                throw new Error('AdvancedBacktester 모듈을 로드할 수 없습니다.');
+            }
+
+            // 진행 콜백
+            const progressCallback = (progress, current, total, detail) => {
+                showProgress(true, {
+                    message: '정밀 백테스트 진행 중...',
+                    progress: progress,
+                    current: current,
+                    total: total,
+                    detail: detail
+                });
+            };
+
+            // 백테스트 실행
+            currentAdvancedBacktest = advancedBacktester.runProbabilityBacktest(
+                startRound, endRound, topN, progressCallback
+            );
+
+            showProgress(false);
+
+            // 결과 표시
+            displayAdvancedBacktestStats(currentAdvancedBacktest);
+            displayScorePerformanceChart(currentAdvancedBacktest);
+            displayCalibrationChart(currentAdvancedBacktest);
+            displayStrategyComparison(currentAdvancedBacktest, enabledStrategies);
+            displayAdvancedBacktestTable(currentAdvancedBacktest);
+
+            showMessage('정밀 백테스트가 완료되었습니다!', 'success');
+
+        } catch (error) {
+            showProgress(false);
+            console.error('Advanced backtest error:', error);
+            showMessage(`백테스트 오류: ${error.message}`, 'error');
+        }
+    }, 100);
+}
+
+/**
+ * 정밀 백테스트 통계 표시
+ */
+function displayAdvancedBacktestStats(backtest) {
+    const container = document.getElementById('adv-backtest-stats');
+    if (!container || !backtest || !backtest.statistics) return;
+
+    const stats = backtest.statistics;
+    const calibration = backtest.calibration;
+
+    container.innerHTML = `
+        <div class="stat-box">
+            <div class="stat-value">${stats.averageHits.toFixed(2)}</div>
+            <div class="stat-label">평균 적중 수</div>
+            <small style="color: ${stats.improvement.avgHits > 0 ? '#22c55e' : '#ef4444'}">
+                무작위 대비 ${stats.improvement.avgHits > 0 ? '+' : ''}${stats.improvement.avgHits.toFixed(1)}%
+            </small>
+        </div>
+        <div class="stat-box">
+            <div class="stat-value">${(stats.hit3PlusRate * 100).toFixed(1)}%</div>
+            <div class="stat-label">3개+ 적중률</div>
+            <small style="color: ${stats.improvement.hit3PlusRate > 0 ? '#22c55e' : '#ef4444'}">
+                무작위 대비 ${stats.improvement.hit3PlusRate > 0 ? '+' : ''}${stats.improvement.hit3PlusRate.toFixed(1)}%
+            </small>
+        </div>
+        <div class="stat-box">
+            <div class="stat-value">${stats.averageActualScore.toFixed(1)}</div>
+            <div class="stat-label">평균 실제 점수</div>
+            <small>당첨 번호들의 평균 예측 점수</small>
+        </div>
+        <div class="stat-box">
+            <div class="stat-value">${stats.averageRank.toFixed(1)}</div>
+            <div class="stat-label">평균 순위</div>
+            <small>당첨 번호들의 평균 예측 순위</small>
+        </div>
+        <div class="stat-box">
+            <div class="stat-value">${calibration ? calibration.brierScore.toFixed(4) : '-'}</div>
+            <div class="stat-label">Brier Score</div>
+            <small>낮을수록 좋음 (0이 완벽)</small>
+        </div>
+        <div class="stat-box">
+            <div class="stat-value">${calibration ? calibration.ece.toFixed(2) : '-'}</div>
+            <div class="stat-label">ECE</div>
+            <small>캘리브레이션 오차</small>
+        </div>
+    `;
+}
+
+/**
+ * 점수별 성과 차트 표시
+ */
+function displayScorePerformanceChart(backtest) {
+    const canvas = document.getElementById('score-performance-chart');
+    if (!canvas || !backtest || !backtest.scorePerformance) return;
+
+    const ctx = canvas.getContext('2d');
+    const performance = backtest.scorePerformance;
+
+    // 기존 차트 제거
+    if (scorePerformanceChart) {
+        scorePerformanceChart.destroy();
+    }
+
+    const labels = performance.map(p => p.range);
+    const accuracyData = performance.map(p => p.accuracy);
+    const expectedData = performance.map(p => (6 / 45) * 100);  // 무작위 기대값
+
+    scorePerformanceChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: '실제 출현율 (%)',
+                    data: accuracyData,
+                    backgroundColor: 'rgba(34, 197, 94, 0.7)',
+                    borderColor: 'rgba(34, 197, 94, 1)',
+                    borderWidth: 1
+                },
+                {
+                    label: '무작위 기대값 (%)',
+                    data: expectedData,
+                    type: 'line',
+                    borderColor: 'rgba(239, 68, 68, 1)',
+                    borderWidth: 2,
+                    borderDash: [5, 5],
+                    fill: false,
+                    pointRadius: 0
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: {
+                    display: true,
+                    text: '점수 구간별 실제 출현율 vs 무작위 기대값'
+                },
+                legend: {
+                    position: 'top'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: '출현율 (%)'
+                    }
+                }
+            }
+        }
+    });
+
+    // 테이블 표시
+    const tableContainer = document.getElementById('score-performance-table');
+    if (tableContainer) {
+        let html = `
+            <table class="backtest-table">
+                <thead>
+                    <tr>
+                        <th>점수 구간</th>
+                        <th>예측 횟수</th>
+                        <th>실제 적중</th>
+                        <th>출현율</th>
+                        <th>리프트</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        performance.forEach(p => {
+            const liftColor = p.lift > 1 ? '#22c55e' : p.lift < 1 ? '#ef4444' : '#64748b';
+            html += `
+                <tr>
+                    <td><strong>${p.range}</strong></td>
+                    <td>${p.predicted.toLocaleString()}</td>
+                    <td>${p.hits.toLocaleString()}</td>
+                    <td>${p.accuracy.toFixed(2)}%</td>
+                    <td style="color: ${liftColor}; font-weight: 600;">
+                        ${p.lift.toFixed(2)}x
+                    </td>
+                </tr>
+            `;
+        });
+
+        html += '</tbody></table>';
+        tableContainer.innerHTML = html;
+    }
+}
+
+/**
+ * 캘리브레이션 차트 표시
+ */
+function displayCalibrationChart(backtest) {
+    const canvas = document.getElementById('calibration-chart');
+    if (!canvas || !backtest || !backtest.calibration) return;
+
+    const ctx = canvas.getContext('2d');
+    const calibration = backtest.calibration;
+
+    // 기존 차트 제거
+    if (calibrationChart) {
+        calibrationChart.destroy();
+    }
+
+    // 캘리브레이션 데이터 준비
+    const bins = calibration.bins.filter(b => b.totalPredictions > 0);
+    const avgConfidence = bins.map(b => b.avgConfidence);
+    const accuracy = bins.map(b => b.accuracy);
+
+    // 완벽한 캘리브레이션 라인 (대각선)
+    const perfectLine = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
+
+    calibrationChart = new Chart(ctx, {
+        type: 'scatter',
+        data: {
+            datasets: [
+                {
+                    label: '실제 캘리브레이션',
+                    data: avgConfidence.map((c, i) => ({ x: c, y: accuracy[i] })),
+                    backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                    borderColor: 'rgba(59, 130, 246, 1)',
+                    pointRadius: 8,
+                    pointHoverRadius: 10
+                },
+                {
+                    label: '완벽한 캘리브레이션',
+                    data: perfectLine.map(v => ({ x: v, y: v })),
+                    type: 'line',
+                    borderColor: 'rgba(156, 163, 175, 0.5)',
+                    borderWidth: 2,
+                    borderDash: [5, 5],
+                    fill: false,
+                    pointRadius: 0
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: {
+                    display: true,
+                    text: '캘리브레이션 플롯 (예측 확률 vs 실제 출현율)'
+                }
+            },
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: '예측 확률 (%)'
+                    },
+                    min: 0,
+                    max: 100
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: '실제 출현율 (%)'
+                    },
+                    min: 0,
+                    max: 100
+                }
+            }
+        }
+    });
+
+    // 캘리브레이션 지표 표시
+    const metricsContainer = document.getElementById('calibration-metrics');
+    if (metricsContainer) {
+        metricsContainer.innerHTML = `
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+                <div style="background: #f8fafc; padding: 16px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 1.5rem; font-weight: 700; color: #1e293b;">${calibration.brierScore.toFixed(4)}</div>
+                    <div style="font-size: 0.875rem; color: #64748b;">Brier Score</div>
+                    <small style="color: #94a3b8;">0이 완벽, 낮을수록 좋음</small>
+                </div>
+                <div style="background: #f8fafc; padding: 16px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 1.5rem; font-weight: 700; color: #1e293b;">${calibration.ece.toFixed(2)}</div>
+                    <div style="font-size: 0.875rem; color: #64748b;">ECE (Expected Calibration Error)</div>
+                    <small style="color: #94a3b8;">0이 완벽한 캘리브레이션</small>
+                </div>
+                <div style="background: #f8fafc; padding: 16px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 1.5rem; font-weight: 700; color: #1e293b;">${calibration.totalPredictions.toLocaleString()}</div>
+                    <div style="font-size: 0.875rem; color: #64748b;">총 예측 횟수</div>
+                    <small style="color: #94a3b8;">분석된 번호-회차 조합 수</small>
+                </div>
+            </div>
+        `;
+    }
+}
+
+/**
+ * 전략 성과 비교 표시
+ */
+function displayStrategyComparison(backtest, enabledStrategies) {
+    const container = document.getElementById('strategy-comparison');
+    if (!container || !backtest) return;
+
+    const stats = backtest.statistics;
+
+    // 전략 정보 생성
+    const strategies = [
+        { key: 'hotCold', name: '🔥 핫/콜드 전략', description: '최근 출현 빈도 기반' },
+        { key: 'sectionBalance', name: '📊 구간 균형', description: '구간별 분산 최적화' },
+        { key: 'oddEvenBalance', name: '⚖️ 홀짝 균형', description: '3:3 비율 유지' },
+        { key: 'sumRange', name: '➕ 합계 범위', description: '100-170 집중' },
+        { key: 'consecutiveLimit', name: '🔢 연속 제한', description: '2개 이하 유지' },
+        { key: 'acValue', name: '📐 AC 값', description: '차이값 다양성' }
+    ];
+
+    let html = `
+        <div style="margin-bottom: 16px;">
+            <h4 style="margin: 0 0 8px 0;">현재 설정 결과</h4>
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+                <div style="background: #f0fdf4; padding: 12px; border-radius: 8px;">
+                    <div style="font-weight: 600; color: #166534;">평균 적중: ${stats.averageHits.toFixed(2)}개</div>
+                </div>
+                <div style="background: #eff6ff; padding: 12px; border-radius: 8px;">
+                    <div style="font-weight: 600; color: #1e40af;">3개+ 적중률: ${(stats.hit3PlusRate * 100).toFixed(1)}%</div>
+                </div>
+            </div>
+        </div>
+        
+        <h4 style="margin: 16px 0 8px 0;">활성화된 전략</h4>
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px;">
+    `;
+
+    strategies.forEach(strategy => {
+        const isEnabled = enabledStrategies[strategy.key];
+        const bgColor = isEnabled ? '#dcfce7' : '#fee2e2';
+        const textColor = isEnabled ? '#166534' : '#991b1b';
+        const icon = isEnabled ? '✅' : '❌';
+
+        html += `
+            <div style="background: ${bgColor}; padding: 10px; border-radius: 6px;">
+                <div style="font-weight: 600; color: ${textColor}; font-size: 0.875rem;">
+                    ${icon} ${strategy.name}
+                </div>
+                <small style="color: #64748b;">${strategy.description}</small>
+            </div>
+        `;
+    });
+
+    html += '</div>';
+
+    // 참고 정보
+    html += `
+        <div style="margin-top: 20px; padding: 12px; background: #fef3c7; border-radius: 8px;">
+            <p style="margin: 0; font-size: 0.875rem; color: #92400e;">
+                💡 <strong>참고:</strong> 무작위 기준선 - 평균 적중: ${stats.randomBaseline.avgHits.toFixed(2)}개, 
+                3개+ 적중률: ${(stats.randomBaseline.hit3PlusRate * 100).toFixed(2)}%
+            </p>
+        </div>
+    `;
+
+    container.innerHTML = html;
+}
+
+/**
+ * 정밀 백테스트 결과 테이블 표시
+ */
+function displayAdvancedBacktestTable(backtest) {
+    const tbody = document.querySelector('#adv-backtest-table tbody');
+    if (!tbody || !backtest || !backtest.results) return;
+
+    tbody.innerHTML = '';
+
+    // 최근 50개만 표시 (성능을 위해)
+    const displayResults = backtest.results.slice(-50);
+
+    displayResults.forEach(result => {
+        const row = document.createElement('tr');
+
+        // 적중 개수에 따른 색상
+        let hitClass = '';
+        if (result.hits >= 4) hitClass = 'hit-high';
+        else if (result.hits >= 3) hitClass = 'hit-medium';
+        else if (result.hits >= 2) hitClass = 'hit-low';
+
+        // 예측 번호 표시 (적중 번호 강조)
+        const predictedHtml = result.predicted.map(num => {
+            const isHit = result.actual.includes(num);
+            return `<span class="number ${isHit ? 'hit' : ''}">${num}</span>`;
+        }).join(' ');
+
+        // 실제 번호 표시
+        const actualHtml = result.actual.map(num => {
+            const isPredicted = result.predicted.includes(num);
+            return `<span class="number ${isPredicted ? 'predicted' : ''}">${num}</span>`;
+        }).join(' ');
+
+        row.innerHTML = `
+            <td>${result.round}</td>
+            <td>${predictedHtml}</td>
+            <td>${actualHtml}</td>
+            <td class="${hitClass}">${result.hits}개</td>
+            <td>${result.avgActualScore.toFixed(1)}</td>
+            <td>${result.avgRank.toFixed(1)}</td>
+        `;
+
+        tbody.appendChild(row);
+    });
+}

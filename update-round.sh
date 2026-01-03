@@ -5,14 +5,14 @@
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DATA_DIR="$SCRIPT_DIR/data"
-LATEST_CSV=$(ls -t "$DATA_DIR"/lotto_1_*.csv 2>/dev/null | head -1)
+LATEST_CSV="$DATA_DIR/lotto_data.csv"
 
-if [ -z "$LATEST_CSV" ]; then
-    echo "CSV 파일을 찾을 수 없습니다."
+if [ ! -f "$LATEST_CSV" ]; then
+    echo "CSV 파일을 찾을 수 없습니다: $LATEST_CSV"
     exit 1
 fi
 
-echo "최신 CSV 파일: $LATEST_CSV"
+echo "CSV 파일: $LATEST_CSV"
 
 # 마지막 회차 정보 추출
 LAST_LINE=$(tail -1 "$LATEST_CSV")
@@ -48,10 +48,12 @@ if [ "$IS_SUNDAY_OR_MONDAY" = true ] && [ "$DAYS_DIFF" -ge 6 ]; then
     echo "   회차: $NEXT_ROUND"
     echo "   예상 날짜: $TODAY"
     echo ""
-    echo "💡 새로운 CSV 파일을 생성하려면:"
-    echo "   cp '$LATEST_CSV' '$DATA_DIR/lotto_1_$NEXT_ROUND.csv'"
-    echo "   # 그리고 새로운 회차 데이터를 추가하세요"
+    echo "💡 데이터를 업데이트하려면:"
+    echo "   1. 웹 인터페이스에서 '데이터 업데이트 확인' 버튼 클릭"
+    echo "   2. 새 회차 정보 입력 후 CSV 다운로드"
+    echo "   3. 다운로드한 lotto_data.csv를 data 폴더에 저장 (기존 파일 덮어쓰기)"
 else
     echo "✅ 아직 새 회차 데이터가 없습니다. (마지막 회차로부터 ${DAYS_DIFF}일 경과)"
 fi
+
 
